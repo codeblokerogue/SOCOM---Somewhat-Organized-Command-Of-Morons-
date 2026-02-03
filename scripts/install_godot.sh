@@ -1,42 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GODOT_VERSION="4.2.2-stable"
-GODOT_ARCHIVE="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-GODOT_URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/${GODOT_ARCHIVE}"
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_DIR="${ROOT_DIR}/.tools/godot"
-INSTALL_PATH="${INSTALL_DIR}/godot"
+TOOLS_DIR="$ROOT_DIR/.tools/godot"
+BIN_PATH="$TOOLS_DIR/godot"
+VERSION="4.2.2"
+ARCHIVE_NAME="Godot_v${VERSION}-stable_linux.x86_64.zip"
+DOWNLOAD_URL="https://github.com/godotengine/godot/releases/download/${VERSION}-stable/${ARCHIVE_NAME}"
 
-if [[ -x "${INSTALL_PATH}" ]]; then
-  echo "Godot already installed at ${INSTALL_PATH}"
+if [[ -x "$BIN_PATH" ]]; then
+  echo "Godot already installed at $BIN_PATH"
   exit 0
 fi
 
-mkdir -p "${INSTALL_DIR}"
+mkdir -p "$TOOLS_DIR"
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
-  rm -rf "${tmp_dir}"
+  rm -rf "$tmp_dir"
 }
 trap cleanup EXIT
 
-archive_path="${tmp_dir}/${GODOT_ARCHIVE}"
+archive_path="$tmp_dir/$ARCHIVE_NAME"
 
-echo "Downloading ${GODOT_URL}..."
-curl -L --fail -o "${archive_path}" "${GODOT_URL}"
-
-echo "Extracting ${GODOT_ARCHIVE}..."
-unzip -q "${archive_path}" -d "${tmp_dir}"
-
-extracted_binary="${tmp_dir}/Godot_v${GODOT_VERSION}_linux.x86_64"
-if [[ ! -f "${extracted_binary}" ]]; then
-  echo "Expected binary not found at ${extracted_binary}" >&2
+echo "Downloading Godot $VERSION..."
+if command -v curl >/dev/null 2>&1; then
+  curl -L "$DOWNLOAD_URL" -o "$archive_path"
+elif command -v wget >/dev/null 2>&1; then
+  wget -O "$archive_path" "$DOWNLOAD_URL"
+else
+  echo "Error: curl or wget is required to download Godot." >&2
   exit 1
 fi
 
-mv "${extracted_binary}" "${INSTALL_PATH}"
-chmod +x "${INSTALL_PATH}"
+if ! command -v unzip >/dev/null 2>&1; then
+  echo "Error: unzip is required to extract Godot." >&2
+  exit 1
+fi
 
-echo "Installed Godot to ${INSTALL_PATH}"
+unzip -q "$archive_path" -d "$tmp_dir"
+
+extracted_bin="$tmp_dir/Godot_v${VERSION}-stable_linux.x86_64"
+if [[ ! -f "$extracted_bin" ]]; then
+  echo "Error: expected binary not found after extraction." >&2
+  exit 1
+fi
+
+mv "$extracted_bin" "$BIN_PATH"
+chmod +x "$BIN_PATH"
+
+echo "Godot installed to $BIN_PATH"
