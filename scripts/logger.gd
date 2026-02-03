@@ -5,6 +5,7 @@ extends Node
 
 var event_log: Array = []
 const MAX_LOG_EVENTS: int = 200
+const TELEMETRY_PATH: String = "user://telemetry.jsonl"
 
 func log_event(text: String) -> void:
     print(text)
@@ -15,8 +16,20 @@ func log_event(text: String) -> void:
         get_tree().call_group("debug_overlay", "log_event", text)
 
 func dump_to_file(path: String) -> void:
-    var file := FileAccess.open(path, FileAccess.WRITE)
+    var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
     if file == null:
         return
     for entry in event_log:
         file.store_line(str(entry))
+
+func log_telemetry(event_type: String, payload: Dictionary) -> void:
+    var record := {
+        "ts": Time.get_unix_time_from_system(),
+        "event": event_type,
+        "data": payload
+    }
+    var file: FileAccess = FileAccess.open(TELEMETRY_PATH, FileAccess.READ_WRITE)
+    if file == null:
+        return
+    file.seek_end()
+    file.store_line(JSON.stringify(record))
