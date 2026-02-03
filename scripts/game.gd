@@ -5,6 +5,8 @@ extends Node2D
 
 @onready var selection_handler: Node = $SelectionHandler
 @onready var camera: Camera2D = $Camera2D
+@onready var debug_overlay = $DebugOverlay
+@onready var end_button = $HUD/EndButton
 
 var formation_modes: Array = ["tight", "normal", "loose"]
 var current_formation_index: int = 1  # start at normal
@@ -13,6 +15,8 @@ func _ready() -> void:
     # Spawn initial units for testing.  In the final game this will be data-driven.
     spawn_player_units(4)
     spawn_enemy_units(4)
+    debug_overlay.set_state("Game")
+    end_button.pressed.connect(_on_end_pressed)
     # Log events
     for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
         Logger.log_event("Spawned Unit %d (role %s)" % [unit.id, unit.role])
@@ -42,6 +46,9 @@ func _unhandled_input(event: InputEvent) -> void:
             order_name = "Hold"
         Logger.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
     elif event is InputEventKey and event.pressed:
+        if event.scancode == KEY_ESCAPE:
+            _end_run()
+            return
         if event.scancode == KEY_SPACE:
             # Pause/unpause
             get_tree().paused = not get_tree().paused
@@ -65,6 +72,13 @@ func _unhandled_input(event: InputEvent) -> void:
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
             Logger.log_event("Formation mode set to %s" % mode)
+
+func _on_end_pressed() -> void:
+    _end_run()
+
+func _end_run() -> void:
+    Logger.log_event("State transition: Game -> AfterAction")
+    get_tree().change_scene_to_file("res://scenes/AfterAction.tscn")
 
 func spawn_player_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
