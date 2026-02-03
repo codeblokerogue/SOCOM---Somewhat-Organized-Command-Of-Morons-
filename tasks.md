@@ -39,14 +39,14 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Cover, LoS & Suppression
 
-* [ ] **Cover system:** place light and heavy cover objects in the map. Determine if a unit is in cover relative to incoming fire and apply modifiers (reduced hit chance/damage). Show cover indicators on the HUD.
-* [ ] **Line of Sight (LoS):** calculate visibility using obstacles. Implement last-known positions that fade over time. Show LoS preview for selected units.
-* [ ] **Suppression:** when a unit is under fire increase its suppression meter. Suppression reduces accuracy and movement speed. Display suppression state as a bar over each unit. Support weapons (LMGs) apply stronger suppression.
+* [x] **Cover system:** place light and heavy cover objects in the map. Determine if a unit is in cover relative to incoming fire and apply modifiers (reduced hit chance/damage). Show cover indicators on the HUD.
+* [x] **Line of Sight (LoS):** calculate visibility using obstacles. Implement last-known positions that fade over time. Show LoS preview for selected units.
+* [x] **Suppression:** when a unit is under fire increase its suppression meter. Suppression reduces accuracy and movement speed. Display suppression state as a bar over each unit. Support weapons (LMGs) apply stronger suppression.
 
 ### Combat
 
-* [ ] **Hitscan shooting:** implement hitscan weapons with rate of fire, damage and range. Accuracy is affected by cover, suppression, distance and movement. Use an HP model for damage; units die when HP ≤ 0.
-* [ ] **Archetypes:** use the archetype data to assign stats and behaviours (e.g. Rifle as baseline, Scout for speed/flanking, Support for suppression). Load from JSON to allow tuning.
+* [x] **Hitscan shooting:** implement hitscan weapons with rate of fire, damage and range. Accuracy is affected by cover, suppression, distance and movement. Use an HP model for damage; units die when HP ≤ 0.
+* [x] **Archetypes:** use the archetype data to assign stats and behaviours (e.g. Rifle as baseline, Scout for speed/flanking, Support for suppression). Load from JSON to allow tuning.
 
 ### AI — v0
 
