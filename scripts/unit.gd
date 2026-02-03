@@ -31,6 +31,7 @@ var attack_move: bool = false
 var spread_offset: Vector2 = Vector2.ZERO
 var time_since_shot: float = 0.0
 var velocity: Vector2 = Vector2.ZERO
+var last_move_dir: Vector2 = Vector2.ZERO
 var separation_radius: float = 18.0
 var avoidance_radius: float = 10.0
 var separation_strength: float = 140.0
@@ -102,6 +103,8 @@ func _update_movement(delta: float) -> void:
         if steer.length() > move_speed:
             steer = steer.normalized() * move_speed
         velocity = steer
+        if velocity.length() > 1.0:
+            last_move_dir = velocity.normalized()
         position += velocity * delta
     else:
         velocity = Vector2.ZERO
@@ -165,6 +168,11 @@ func _attack_logic(delta: float) -> void:
             })
         # Apply suppression to target
         nearest.suppression += _suppression_amount()
+        Logger.log_telemetry("combat_suppression", {
+            "attacker_id": id,
+            "target_id": nearest.id,
+            "amount": _suppression_amount()
+        })
         # Log event
         _log_event("Unit %d shot Unit %d" % [id, nearest.id])
 
@@ -177,6 +185,7 @@ func take_damage(amount: float, source: Node) -> void:
         if game != null:
             game.record_kill(cover_state, source)
             game.award_xp(source, 10)
+            game.record_flank_event(source, self)
         Logger.log_telemetry("combat_kill", {
             "attacker_id": source.id,
             "target_id": id,
