@@ -344,30 +344,7 @@ func _toggle_hold_mode() -> void:
     Logger.log_event("Hold mode set to %s" % mode_label)
 
 func _handle_control_group_input(_event: InputEvent) -> void:
-    if not (_event is InputEventKey):
-        return
-    var key_event: InputEventKey = _event
-    if key_event.keycode < KEY_1 or key_event.keycode > KEY_9:
-        return
-    var group_index: int = key_event.keycode - KEY_1 + 1
-    if key_event.ctrl_pressed:
-        var snapshot: Array = []
-        for unit in selection_handler.selection:
-            if is_instance_valid(unit):
-                snapshot.append(unit)
-        control_groups[group_index] = snapshot
-        Logger.log_event("Control group %d assigned (%d units)" % [group_index, snapshot.size()])
-    else:
-        if not control_groups.has(group_index):
-            return
-        var units: Array = []
-        for unit in control_groups[group_index]:
-            if is_instance_valid(unit) and unit.is_in_group("player_units"):
-                units.append(unit)
-        if units.is_empty():
-            return
-        selection_handler.select_units(units, key_event.shift_pressed)
-        Logger.log_event("Control group %d selected (%d units)" % [group_index, units.size()])
+    return
 
 func is_line_of_sight(from_pos: Vector2, to_pos: Vector2, target: Node2D = null) -> bool:
     var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
