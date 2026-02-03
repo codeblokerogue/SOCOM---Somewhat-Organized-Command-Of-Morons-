@@ -19,6 +19,12 @@ anchor_bottom = 0.6
 [node name="StartButton" type="Button" parent="VBoxContainer"]
 text = "Start"
 
+[node name="StartMap2Button" type="Button" parent="VBoxContainer"]
+text = "Start Map 2"
+
+[node name="RosterButton" type="Button" parent="VBoxContainer"]
+text = "Roster"
+
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 text = "Quit"
 

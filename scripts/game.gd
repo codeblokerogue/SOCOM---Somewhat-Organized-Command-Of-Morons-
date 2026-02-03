@@ -8,6 +8,7 @@ extends Node2D
 @onready var debug_overlay = $DebugOverlay
 @onready var end_button = $HUD/EndButton
 @onready var selection_label: Label = $HUD/SelectionPanel/SelectionLabel
+@onready var objective_marker: Node2D = $ObjectiveMarker
 
 var last_selection_summary: String = ""
 
@@ -16,6 +17,13 @@ var current_formation_index: int = 1  # start at normal
 var unit_archetypes: Dictionary = {}
 var unit_roster: Dictionary = {}
 var fireteams: Dictionary = {}
+var match_stats: Dictionary = {}
+var hold_timer_player: float = 0.0
+var hold_timer_enemy: float = 0.0
+var match_over: bool = false
+var control_groups: Dictionary = {}
+const HOLD_THRESHOLD: float = 12.0
+const OBJECTIVE_CONTROL_MIN: int = 1
 
 const PLAYER_UNIT_COUNT: int = 8
 const TOTAL_UNIT_TARGET: int = 80
@@ -29,8 +37,12 @@ const CAMERA_ZOOM_STEP: float = 0.1
 const MAP_BOUNDS: Rect2 = Rect2(Vector2.ZERO, Vector2(1600, 900))
 
 func _ready() -> void:
+    add_to_group("game")
     unit_archetypes = _load_unit_archetypes()
+    _load_campaign_state()
     _spawn_match_units()
+    _setup_fireteam_ai()
+    _init_match_stats()
     debug_overlay.set_state("Game")
     end_button.pressed.connect(_on_end_pressed)
     # Log events
@@ -40,6 +52,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     _handle_camera_movement(delta)
     _update_selection_panel()
+    _update_objective(delta)
+    _check_victory_conditions()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Right‑click issues orders
@@ -94,6 +108,8 @@ func _unhandled_input(event: InputEvent) -> void:
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
             Logger.log_event("Formation mode set to %s" % mode)
+        else:
+            _handle_control_group_input(event)
     if event is InputEventMouseButton and event.pressed:
         if event.button_index == MOUSE_BUTTON_WHEEL_UP:
             _adjust_camera_zoom(-CAMERA_ZOOM_STEP)
@@ -104,6 +120,11 @@ func _on_end_pressed() -> void:
     _end_run()
 
 func _end_run() -> void:
+    if match_over:
+        return
+    match_over = true
+    _finalize_match_summary()
+    _save_campaign_state()
     Logger.log_event("State transition: Game -> AfterAction")
     get_tree().change_scene_to_file("res://scenes/AfterAction.tscn")
 
@@ -113,6 +134,7 @@ func spawn_player_units(count: int) -> void:
         var unit: Unit = scene.instantiate() as Unit
         unit.id = IDGenerator.next_id()
         _apply_unit_archetype(unit, "Rifle")
+        _apply_persisted_data(unit)
         unit.position = Vector2(150 + i * 20, 400)
         unit.add_to_group("player_units")
         add_child(unit)
@@ -128,8 +150,10 @@ func spawn_enemy_units(count: int) -> void:
         unit.set_script(load("res://scripts/ai_unit.gd"))
         var archetype := "Support" if i % 2 == 0 else "Scout"
         _apply_unit_archetype(unit, archetype)
+        _apply_persisted_data(unit)
         unit.position = Vector2(800 + i * 20, 200)
         unit.add_to_group("enemy_units")
+        unit.fireteam_id = fireteam_index
         if fireteam_size == 0:
             fireteam_size = FIRETEAM_MIN_SIZE + (fireteam_index % (FIRETEAM_MAX_SIZE - FIRETEAM_MIN_SIZE + 1))
             fireteams[fireteam_index] = []
@@ -142,6 +166,13 @@ func spawn_enemy_units(count: int) -> void:
         fireteam_size -= 1
         if fireteam_size <= 0:
             fireteam_index += 1
+
+func _setup_fireteam_ai() -> void:
+    var fireteam_scene := load("res://ai/fireteam_ai.gd")
+    for key in fireteams.keys():
+        var team_node := fireteam_scene.new()
+        add_child(team_node)
+        team_node.setup(int(key), fireteams[key])
 
 func _handle_camera_movement(delta: float) -> void:
     # Camera panning with WASD keys + edge scrolling
@@ -220,6 +251,14 @@ func _apply_unit_archetype(unit: Unit, archetype_name: String) -> void:
         unit.speed = float(data["speed"])
     if data.has("accuracy"):
         unit.accuracy = float(data["accuracy"])
+    if data.has("weapon_range"):
+        unit.weapon_range = float(data["weapon_range"])
+    if data.has("rate_of_fire"):
+        unit.rate_of_fire = float(data["rate_of_fire"])
+    if data.has("damage"):
+        unit.damage = float(data["damage"])
+    if data.has("suppression_power"):
+        unit.suppression_power = float(data["suppression_power"])
     if data.has("suppression_resistance"):
         unit.suppression_resistance = float(data["suppression_resistance"])
     if data.has("role_tag"):
@@ -273,3 +312,224 @@ func _toggle_hold_mode() -> void:
     if selection_handler.selection.size() > 0:
         mode_label = selection_handler.selection[0].hold_mode
     Logger.log_event("Hold mode set to %s" % mode_label)
+
+func _handle_control_group_input(event: InputEventKey) -> void:
+    var index := _number_key_to_index(event.scancode)
+    if index == -1:
+        return
+    if event.ctrl_pressed:
+        control_groups[index] = selection_handler.selection.duplicate()
+        Logger.log_event("Assigned %d units to group %d" % [selection_handler.selection.size(), index])
+        return
+    if control_groups.has(index):
+        var group_units: Array = []
+        for unit in control_groups[index]:
+            if is_instance_valid(unit):
+                group_units.append(unit)
+        selection_handler.select_units(group_units, false)
+        Logger.log_event("Selected group %d (%d units)" % [index, group_units.size()])
+
+func _number_key_to_index(scancode: int) -> int:
+    match scancode:
+        KEY_1:
+            return 1
+        KEY_2:
+            return 2
+        KEY_3:
+            return 3
+        KEY_4:
+            return 4
+        KEY_5:
+            return 5
+        KEY_6:
+            return 6
+        KEY_7:
+            return 7
+        KEY_8:
+            return 8
+        KEY_9:
+            return 9
+        _:
+            return -1
+
+func _init_match_stats() -> void:
+    match_stats = {
+        "player_kills": 0,
+        "enemy_kills": 0,
+        "kills_in_cover": 0,
+        "kills_in_open": 0,
+        "xp_awarded": 0,
+        "objective_winner": "",
+        "end_reason": ""
+    }
+
+func _update_objective(delta: float) -> void:
+    if objective_marker == null:
+        return
+    var center := objective_marker.global_position
+    var radius := objective_marker.radius if "radius" in objective_marker else 120.0
+    var player_count := _count_units_in_radius("player_units", center, radius)
+    var enemy_count := _count_units_in_radius("enemy_units", center, radius)
+    if player_count >= OBJECTIVE_CONTROL_MIN and player_count > enemy_count:
+        hold_timer_player += delta
+        hold_timer_enemy = max(hold_timer_enemy - delta * 0.5, 0.0)
+    elif enemy_count >= OBJECTIVE_CONTROL_MIN and enemy_count > player_count:
+        hold_timer_enemy += delta
+        hold_timer_player = max(hold_timer_player - delta * 0.5, 0.0)
+    else:
+        hold_timer_player = max(hold_timer_player - delta * 0.25, 0.0)
+        hold_timer_enemy = max(hold_timer_enemy - delta * 0.25, 0.0)
+    if hold_timer_player >= HOLD_THRESHOLD:
+        match_stats["objective_winner"] = "player"
+        match_stats["end_reason"] = "Objective held"
+        _end_run()
+    elif hold_timer_enemy >= HOLD_THRESHOLD:
+        match_stats["objective_winner"] = "enemy"
+        match_stats["end_reason"] = "Objective lost"
+        _end_run()
+
+func _check_victory_conditions() -> void:
+    if match_over or get_tree().paused:
+        return
+    var player_units := get_tree().get_nodes_in_group("player_units")
+    var enemy_units := get_tree().get_nodes_in_group("enemy_units")
+    if player_units.is_empty():
+        match_stats["end_reason"] = "Player eliminated"
+        _end_run()
+    elif enemy_units.is_empty():
+        match_stats["end_reason"] = "Enemy eliminated"
+        _end_run()
+
+func _count_units_in_radius(group_name: String, center: Vector2, radius: float) -> int:
+    var count := 0
+    for unit in get_tree().get_nodes_in_group(group_name):
+        if unit.global_position.distance_to(center) <= radius:
+            count += 1
+    return count
+
+func record_kill(victim_cover_state: String, killer: Unit) -> void:
+    if killer != null and killer.is_in_group("player_units"):
+        match_stats["player_kills"] += 1
+    else:
+        match_stats["enemy_kills"] += 1
+    if victim_cover_state == "none":
+        match_stats["kills_in_open"] += 1
+    else:
+        match_stats["kills_in_cover"] += 1
+
+func award_xp(unit: Unit, amount: int) -> void:
+    if unit == null:
+        return
+    unit.xp += amount
+    match_stats["xp_awarded"] += amount
+    if unit_roster.has(unit.id):
+        unit_roster[unit.id]["xp"] = unit.xp
+    Logger.log_event("Unit %d gained %d XP" % [unit.id, amount])
+
+func _finalize_match_summary() -> void:
+    var summary := {
+        "end_reason": match_stats.get("end_reason", "Unknown"),
+        "player_kills": match_stats.get("player_kills", 0),
+        "enemy_kills": match_stats.get("enemy_kills", 0),
+        "kills_in_cover": match_stats.get("kills_in_cover", 0),
+        "kills_in_open": match_stats.get("kills_in_open", 0),
+        "xp_awarded": match_stats.get("xp_awarded", 0),
+        "objective_winner": match_stats.get("objective_winner", ""),
+        "survivors_player": get_tree().get_nodes_in_group("player_units").size(),
+        "survivors_enemy": get_tree().get_nodes_in_group("enemy_units").size()
+    }
+    get_tree().set_meta("match_summary", summary)
+    Logger.dump_to_file("user://match_log.txt")
+
+func _save_campaign_state() -> void:
+    var roster_list: Array = []
+    for entry in unit_roster.values():
+        roster_list.append(entry)
+    var state := {
+        "units": roster_list
+    }
+    var file := FileAccess.open("user://campaign.json", FileAccess.WRITE)
+    if file == null:
+        return
+    file.store_string(JSON.stringify(state))
+
+func _load_campaign_state() -> void:
+    var path := "user://campaign.json"
+    if not FileAccess.file_exists(path):
+        return
+    var file := FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        return
+    var parsed = JSON.parse_string(file.get_as_text())
+    if typeof(parsed) != TYPE_DICTIONARY:
+        return
+    unit_roster.clear()
+    var units := parsed.get("units", [])
+    for entry in units:
+        if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+            unit_roster[entry["id"]] = entry
+
+func _apply_persisted_data(unit: Unit) -> void:
+    if unit_roster.has(unit.id):
+        var entry := unit_roster[unit.id]
+        unit.xp = entry.get("xp", 0)
+        unit.rank = entry.get("rank", 0)
+
+func is_line_of_sight(from_pos: Vector2, to_pos: Vector2, target: Node2D = null) -> bool:
+    var space_state := get_world_2d().direct_space_state
+    var params := PhysicsRayQueryParameters2D.create(from_pos, to_pos)
+    params.exclude = target != null ? [target] : []
+    params.collision_mask = 1
+    var result := space_state.intersect_ray(params)
+    if result.is_empty():
+        return true
+    var collider := result.get("collider")
+    if collider != null and collider.is_in_group("cover") and target != null:
+        var cover := collider
+        if "cover_radius" in cover:
+            if cover.global_position.distance_to(target.global_position) <= cover.cover_radius:
+                return true
+    return false
+
+func get_cover_state(target: Unit, source_pos: Vector2) -> Dictionary:
+    var best_type := "none"
+    var best_weight := 0.0
+    for cover in get_tree().get_nodes_in_group("cover"):
+        if not (cover is Node2D):
+            continue
+        if not ("cover_radius" in cover):
+            continue
+        var dist_to_target := cover.global_position.distance_to(target.global_position)
+        if dist_to_target > cover.cover_radius:
+            continue
+        var to_source := (source_pos - target.global_position).normalized()
+        var to_cover := (cover.global_position - target.global_position).normalized()
+        var facing := to_source.dot(to_cover)
+        if facing < 0.4:
+            continue
+        if source_pos.distance_to(cover.global_position) >= source_pos.distance_to(target.global_position):
+            continue
+        var cover_type := cover.cover_type if "cover_type" in cover else "light"
+        var weight := 1.0 if cover_type == "heavy" else 0.5
+        if weight > best_weight:
+            best_weight = weight
+            best_type = cover_type
+    match best_type:
+        "heavy":
+            return {
+                "type": "heavy",
+                "hit_multiplier": 0.5,
+                "damage_multiplier": 0.7
+            }
+        "light":
+            return {
+                "type": "light",
+                "hit_multiplier": 0.75,
+                "damage_multiplier": 0.85
+            }
+        _:
+            return {
+                "type": "none",
+                "hit_multiplier": 1.0,
+                "damage_multiplier": 1.0
+            }

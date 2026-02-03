@@ -9,6 +9,7 @@ var start_world_pos: Vector2
 var current_world_pos: Vector2
 var current_rect: Rect2 = Rect2()
 var selection: Array = []
+var last_clicked_unit: Node2D = null
 
 const DRAG_THRESHOLD: float = 6.0
 const CLICK_RADIUS: float = 12.0
@@ -29,7 +30,7 @@ func _input(event: InputEvent) -> void:
                 var is_shift := Input.is_key_pressed(KEY_SHIFT)
                 var drag_distance := start_screen_pos.distance_to(event.position)
                 if drag_distance <= DRAG_THRESHOLD:
-                    _handle_click_selection(_screen_to_world(event.position), is_shift)
+                    _handle_click_selection(_screen_to_world(event.position), is_shift, event.double_click)
                 else:
                     _handle_box_selection(is_shift)
                 queue_redraw()
@@ -56,14 +57,18 @@ func _screen_to_world(screen_pos: Vector2) -> Vector2:
         return camera.unproject_position(screen_pos)
     return screen_pos
 
-func _handle_click_selection(world_pos: Vector2, add_to_selection: bool) -> void:
+func _handle_click_selection(world_pos: Vector2, add_to_selection: bool, is_double_click: bool) -> void:
     var selected_unit := _get_unit_at_point(world_pos)
     if not add_to_selection:
         _clear_selection()
     if selected_unit != null:
-        if not selection.has(selected_unit):
-            selection.append(selected_unit)
-        selected_unit.selected = true
+        if is_double_click:
+            _select_units_by_role(selected_unit.role, add_to_selection)
+        else:
+            if not selection.has(selected_unit):
+                selection.append(selected_unit)
+            selected_unit.selected = true
+        last_clicked_unit = selected_unit
 
 func _handle_box_selection(add_to_selection: bool) -> void:
     var rect := current_rect.abs()
@@ -96,3 +101,18 @@ func _get_unit_at_point(world_pos: Vector2) -> Node2D:
             closest = unit
             closest_dist = dist
     return closest
+
+func select_units(units: Array, add_to_selection: bool = false) -> void:
+    if not add_to_selection:
+        _clear_selection()
+    for unit in units:
+        if not selection.has(unit):
+            selection.append(unit)
+        unit.selected = true
+
+func _select_units_by_role(role_name: String, add_to_selection: bool) -> void:
+    var matching: Array = []
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        if unit.role == role_name:
+            matching.append(unit)
+    select_units(matching, add_to_selection)
