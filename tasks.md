@@ -31,11 +31,11 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Movement & Orders
 
-* [ ] **Free-move navigation:** implement movement without tiles using `Navigation2D` or steering behaviours. Include local avoidance and separation to prevent clumping when large groups move.
-* [ ] **Move order:** right-click issues a move order to all selected units. Shift-right-click queues a second waypoint (max two waypoints).
-* [ ] **Attack-move order:** while holding **A**, right-click issues an attack-move order. Units move toward the point and automatically engage enemies on the way.
-* [ ] **Hold order:** pressing **H** toggles a hold command; units remain in place and either return fire (defensive) or free fire (aggressive), with two states for the MVP.
-* [ ] **Spread/Spacing order:** press **F** to cycle formation spacing (tight, normal, loose). This adjusts the separation radius used during path following.
+* [x] **Free-move navigation:** implement movement without tiles using `Navigation2D` or steering behaviours. Include local avoidance and separation to prevent clumping when large groups move.
+* [x] **Move order:** right-click issues a move order to all selected units. Shift-right-click queues a second waypoint (max two waypoints).
+* [x] **Attack-move order:** while holding **A**, right-click issues an attack-move order. Units move toward the point and automatically engage enemies on the way.
+* [x] **Hold order:** pressing **H** toggles a hold command; units remain in place and either return fire (defensive) or free fire (aggressive), with two states for the MVP.
+* [x] **Spread/Spacing order:** press **F** to cycle formation spacing (tight, normal, loose). This adjusts the separation radius used during path following.
 
 ### Cover, LoS & Suppression
 

@@ -28,6 +28,13 @@ var attack_move: bool = false
 var spread_offset: Vector2 = Vector2.ZERO
 var time_since_shot: float = 0.0
 var velocity: Vector2 = Vector2.ZERO
+var separation_radius: float = 18.0
+var avoidance_radius: float = 10.0
+var separation_strength: float = 140.0
+var avoidance_strength: float = 220.0
+var waypoints: Array = []
+var hold_mode: String = "off"
+var recent_damage_timer: float = 999.0
 
 func _ready() -> void:
     hp = max_hp
@@ -41,6 +48,8 @@ func _process(delta: float) -> void:
     update()
 
 func _physics_process(delta: float) -> void:
+    if recent_damage_timer < 999.0:
+        recent_damage_timer += delta
     # If holding, do not move
     if hold:
         velocity = Vector2.ZERO
@@ -62,15 +71,40 @@ func _update_movement(delta: float) -> void:
         # Slow down when suppressed
         if suppression > 0.0:
             move_speed *= clamp(1.0 - suppression / 100.0, 0.4, 1.0)
-        velocity = dir * move_speed
+        var desired_velocity := dir * move_speed
+        var separation_force := Vector2.ZERO
+        var avoidance_force := Vector2.ZERO
+        var separation_radius_scaled := separation_radius
+        var avoidance_radius_scaled := avoidance_radius
+        for group_name in ["player_units", "enemy_units"]:
+            for other in get_tree().get_nodes_in_group(group_name):
+                if other == self:
+                    continue
+                var offset := global_position - other.global_position
+                var other_dist := offset.length()
+                if other_dist <= 0.001:
+                    continue
+                if other_dist < separation_radius_scaled:
+                    separation_force += offset.normalized() * (1.0 - other_dist / separation_radius_scaled)
+                if other_dist < avoidance_radius_scaled:
+                    avoidance_force += offset.normalized() * (1.0 - other_dist / avoidance_radius_scaled)
+        var steer := desired_velocity
+        steer += separation_force * separation_strength
+        steer += avoidance_force * avoidance_strength
+        if steer.length() > move_speed:
+            steer = steer.normalized() * move_speed
+        velocity = steer
         position += velocity * delta
     else:
         velocity = Vector2.ZERO
+        if waypoints.size() > 1:
+            waypoints.remove_at(0)
+            target_position = waypoints[0]
 
 func _attack_logic(delta: float) -> void:
     time_since_shot += delta
     # Only attack when attack_move is true
-    if not attack_move:
+    if not attack_move and not (hold_mode == "defensive" and recent_damage_timer <= 2.0):
         return
     # Check if ready to shoot
     if time_since_shot < rate_of_fire:
@@ -104,6 +138,7 @@ func _attack_logic(delta: float) -> void:
 
 func take_damage(amount: float, source: Unit) -> void:
     hp -= amount
+    recent_damage_timer = 0.0
     _log_event("Unit %d took %.0f damage from Unit %d" % [id, amount, source.id])
     if hp <= 0.0:
         _log_event("Unit %d was killed" % id)
@@ -128,3 +163,11 @@ func _draw() -> void:
 func _log_event(text: String) -> void:
     # Send event to DebugOverlay via group
     get_tree().call_group("debug_overlay", "log_event", text)
+
+func issue_move_order(destination: Vector2, queue: bool) -> void:
+    if not queue:
+        waypoints = [destination]
+    elif waypoints.size() < 2:
+        waypoints.append(destination)
+    if waypoints.size() > 0:
+        target_position = waypoints[0]
