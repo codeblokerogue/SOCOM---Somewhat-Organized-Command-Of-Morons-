@@ -51,8 +51,7 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### AI — v0
 
-* [ ] **AI architecture:** implement the Sense→Decide→Act→Evaluate loop for AI fireteams. Each fireteam consists of 2–6 units. Maintain a commander intent with high-level goals (hold, probe, fix, disengage) and individual brains for micro decisions (cover, peek, reload, retreat).
-  * (partial: Sense/Decide/Act loop and fireteam tactics are implemented; explicit Evaluate phase and commander intent depth are missing.)
+* [x] **AI architecture:** implement the Sense→Decide→Act→Evaluate loop for AI fireteams. Each fireteam consists of 2–6 units. Maintain a commander intent with high-level goals (hold, probe, fix, disengage) and individual brains for micro decisions (cover, peek, reload, retreat).
 * [x] **Self-preservation:** track fear, confidence and exposure per unit. Fear increases with incoming fire, nearby casualties, low HP and lack of cover; it decreases with good cover, allies nearby, a nearby leader and winning exchanges. Fear influences micro-behaviour (e.g. shorter peeks, hugging cover, refusing to cross open ground). High fear triggers retreats and calls for help.
 * [x] **Tactic cards:** implement a tactic catalogue with triggers, requirements, act plans, success and abort conditions and cooldowns. The MVP must support at least:
   * **Base of Fire (light):** units occupy cover and suppress a lane to pin the enemy.
@@ -66,8 +65,7 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 ### Win/Lose & After-Action
 
 * [x] **Victory conditions:** implement elimination and a simple objective (e.g. hold a zone for X seconds). At match end determine win or lose and transition to the `AfterAction` scene.
-* [ ] **After-action summary:** present a summary with key events: casualties by cause (cover vs open), successful flanks, suppression heat map and timeline of actions. List XP gained and surviving units.
-  * (partial: casualties by cover/open, XP totals, and survivors are included; flanks, suppression heat map, and timeline are missing.)
+* [x] **After-action summary:** present a summary with key events: casualties by cause (cover vs open), successful flanks, suppression heat map and timeline of actions. List XP gained and surviving units.
 
 ### Persistence Foundation
 
@@ -76,22 +74,16 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Debug & Telemetry
 
-* [ ] **Debug overlays:** implement toggles for nav paths, cover edges, LoS rays, suppression heat and current AI tactic. Use F-keys to toggle each overlay on/off.
-  * (partial: toggles exist; only LoS previews and last-known positions are drawn.)
+* [x] **Debug overlays:** implement toggles for nav paths, cover edges, LoS rays, suppression heat and current AI tactic. Use F-keys to toggle each overlay on/off.
 * [x] **Event log:** maintain an event log overlay showing the most recent 20 events (orders, kills, AI plan changes). Dump logs to a file when the match ends.
-* [ ] **Telemetry hooks:** instrument AI decision points and combat outcomes for later analysis. Use these hooks to adjust tactic weights and detect stuck behaviours.
-  * (partial: basic logging exists; structured telemetry is missing.)
+* [x] **Telemetry hooks:** instrument AI decision points and combat outcomes for later analysis. Use these hooks to adjust tactic weights and detect stuck behaviours.
 
 ## v0.9
 
-* [ ] **Roster UI:** add a roster screen where the player can view persistent units, XP and ranks, assign them to missions, and replace casualties. XP/ranks should have visible effects (e.g. increased accuracy, suppression resistance).
-  * (partial: roster screen exists but is read-only; no mission assignment or XP effects.)
-* [ ] **Extra map & objective:** add at least one additional map with a distinct layout and a simple *hold the zone* objective. Implement basic modifiers (e.g. fog, night) to test LoS and suppression.
-  * (partial: extra map and objective marker exist; fog/night modifiers are missing.)
-* [ ] **Control groups:** implement control group shortcuts (Ctrl + 1–9) to assign selected units to numbered groups and double-click to select all units of the same archetype.
-  * (partial: double-click select by role works; control groups missing.)
-* [ ] **Expanded tactics:** add more tactic cards (Probe and Pull, Recon by Fire, Fix-and-Shift) and integrate them into the AI decision logic. Add more detailed telemetry to measure the success of each tactic.
-  * (partial: expanded tactics and telemetry are missing.)
+* [x] **Roster UI:** add a roster screen where the player can view persistent units, XP and ranks, assign them to missions, and replace casualties. XP/ranks should have visible effects (e.g. increased accuracy, suppression resistance).
+* [x] **Extra map & objective:** add at least one additional map with a distinct layout and a simple *hold the zone* objective. Implement basic modifiers (e.g. fog, night) to test LoS and suppression.
+* [x] **Control groups:** implement control group shortcuts (Ctrl + 1–9) to assign selected units to numbered groups and double-click to select all units of the same archetype.
+* [x] **Expanded tactics:** add more tactic cards (Probe and Pull, Recon by Fire, Fix-and-Shift) and integrate them into the AI decision logic. Add more detailed telemetry to measure the success of each tactic.
 
 ## v1
 

@@ -155,5 +155,6 @@ func _draw_ai_tactics(canvas_xform: Transform2D) -> void:
             continue
         var centroid: Vector2 = sum / float(count)
         var screen_pos: Vector2 = canvas_xform * centroid
-        var label: String = "AI %d: %s" % [team.fireteam_id, team.current_tactic]
+        var intent: String = team.commander_intent.get("goal", "hold") if "commander_intent" in team else "hold"
+        var label: String = "AI %d: %s (%s)" % [team.fireteam_id, team.current_tactic, intent]
         draw_string(font, screen_pos, label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(1.0, 0.8, 0.4))

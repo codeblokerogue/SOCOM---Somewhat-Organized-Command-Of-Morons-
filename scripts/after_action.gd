@@ -25,6 +25,8 @@ func _populate_summary() -> void:
     if get_tree().has_meta("match_summary"):
         summary = get_tree().get_meta("match_summary")
     var lines: Array = []
+    var heat_lines: Array = []
+    var timeline_lines: Array = []
     lines.append("Result: %s" % summary.get("end_reason", "Unknown"))
     lines.append("Objective: %s" % summary.get("objective_winner", "None"))
     lines.append("Player kills: %d" % summary.get("player_kills", 0))
@@ -35,7 +37,31 @@ func _populate_summary() -> void:
     lines.append("Survivors (player/enemy): %d / %d" % [summary.get("survivors_player", 0), summary.get("survivors_enemy", 0)])
     lines.append("Suppression peak (player/enemy): %.0f / %.0f" % [summary.get("suppression_peak_player", 0.0), summary.get("suppression_peak_enemy", 0.0)])
     lines.append("Flank events: %d" % summary.get("flank_events", []).size())
-    lines.append("Timeline events: %d" % summary.get("timeline", []).size())
+    var heatmap: Dictionary = summary.get("suppression_heatmap", {})
+    if typeof(heatmap) == TYPE_DICTIONARY and heatmap.size() > 0:
+        var top_cells: Array = heatmap.keys()
+        top_cells.sort_custom(func(a, b): return heatmap[a] > heatmap[b])
+        var max_cells: int = min(3, top_cells.size())
+        for i in range(max_cells):
+            var key: String = str(top_cells[i])
+            var parts: PackedStringArray = key.split(",")
+            if parts.size() >= 2:
+                var cell_label: String = "Cell %s,%s" % [parts[0], parts[1]]
+                heat_lines.append("%s (%.0f)" % [cell_label, float(heatmap[key])])
+    if heat_lines.size() > 0:
+        lines.append("Suppression hotspots: %s" % ", ".join(heat_lines))
+    var timeline: Array = summary.get("timeline", [])
+    if typeof(timeline) == TYPE_ARRAY and timeline.size() > 0:
+        var tail_count: int = min(5, timeline.size())
+        for i in range(timeline.size() - tail_count, timeline.size()):
+            var entry: Dictionary = timeline[i]
+            var label: String = entry.get("label", "Event")
+            var time_stamp: float = float(entry.get("time", 0.0))
+            timeline_lines.append("[%0.1fs] %s" % [time_stamp, label])
+    if timeline_lines.size() > 0:
+        lines.append("Timeline:")
+        for entry in timeline_lines:
+            lines.append("  " + entry)
     summary_text.text = "\\n".join(lines)
 
 func _maybe_finish_playtest() -> void:

@@ -30,6 +30,14 @@ position = Vector2(400, 260)
 script = ExtResource(5)
 radius = 100.0
 
+[node name="MapModifiers" type="Node" parent="."]
+script = ExtResource(6)
+night_enabled = true
+fog_enabled = true
+range_multiplier = 0.7
+accuracy_multiplier = 0.8
+suppression_resistance_multiplier = 0.85
+
 [node name="CoverLightA" parent="." instance=ExtResource(4)]
 position = Vector2(260, 320)
 

@@ -14,13 +14,18 @@ var reserve_units: Array = []
 var flank_units: Array = []
 var screen_units: Array = []
 var last_update_time: float = 0.0
+var commander_intent: Dictionary = {"goal": "hold", "confidence": 0.5}
+var last_evaluation: Dictionary = {}
 
 const TACTIC_DURATIONS := {
     "base_of_fire": 6.0,
     "flank_subgroup": 7.0,
     "screen": 7.0,
     "peel_back": 4.0,
-    "reserve": 8.0
+    "reserve": 8.0,
+    "probe_and_pull": 6.0,
+    "recon_by_fire": 6.0,
+    "fix_and_shift": 7.0
 }
 
 func _ready() -> void:
@@ -48,12 +53,14 @@ func _tick(delta: float) -> void:
             if current_tactic != "idle":
                 cooldowns[current_tactic] = TACTIC_DURATIONS.get(current_tactic, 6.0)
             _log("Fireteam %d tactic -> %s" % [fireteam_id, current_tactic])
+            _record_timeline_event("Fireteam tactic: %s" % current_tactic)
             Logger.log_telemetry("ai_tactic_selected", {
                 "fireteam_id": fireteam_id,
                 "tactic": current_tactic,
                 "unit_count": units.size()
             })
             _act(current_tactic)
+            _evaluate(_sense())
         return
     if not _should_update():
         return
@@ -72,6 +79,7 @@ func _tick(delta: float) -> void:
         })
     else:
         _act(current_tactic)
+    _evaluate(sense)
 
 func _sense() -> Dictionary:
     var live_units: Array = _get_live_units()
@@ -83,6 +91,15 @@ func _sense() -> Dictionary:
     var avg_hp: float = _get_average_hp_ratio(units)
     var avg_suppression: float = _get_average_suppression(units)
     var losing: bool = avg_hp < 0.45 or avg_fear > 0.6 or avg_suppression > 55.0
+    Logger.log_telemetry("ai_sense", {
+        "fireteam_id": fireteam_id,
+        "unit_count": units.size(),
+        "enemy_count": player_units.size(),
+        "avg_fear": avg_fear,
+        "avg_hp": avg_hp,
+        "avg_suppression": avg_suppression,
+        "losing": losing
+    })
     return {
         "units": units,
         "centroid": centroid,
@@ -103,15 +120,32 @@ func _decide(sense: Dictionary) -> String:
         "flank_subgroup": 0.2,
         "screen": 0.15,
         "peel_back": 0.1,
-        "reserve": 0.1
+        "reserve": 0.1,
+        "probe_and_pull": 0.15,
+        "recon_by_fire": 0.1,
+        "fix_and_shift": 0.12
     }
+    match commander_intent.get("goal", "hold"):
+        "probe":
+            scores["flank_subgroup"] += 0.35
+            scores["screen"] += 0.1
+        "fix":
+            scores["base_of_fire"] += 0.3
+        "disengage":
+            scores["peel_back"] += 0.5
+        _:
+            scores["reserve"] += 0.1
     if sense["losing"]:
         scores["peel_back"] = 1.2
+        scores["probe_and_pull"] -= 0.1
+        scores["fix_and_shift"] -= 0.1
     if unit_count >= 3:
         scores["flank_subgroup"] += 0.25
+        scores["probe_and_pull"] += 0.15
     if unit_count >= 4:
         scores["screen"] += 0.2
         scores["reserve"] += 0.25
+        scores["fix_and_shift"] += 0.25
     for key in scores.keys():
         if cooldowns.has(key) and cooldowns[key] > 0.0:
             scores[key] = -1.0
@@ -122,6 +156,12 @@ func _decide(sense: Dictionary) -> String:
         if score > best_score:
             best_score = score
             best = key
+    Logger.log_telemetry("ai_decide", {
+        "fireteam_id": fireteam_id,
+        "intent": commander_intent.get("goal", "hold"),
+        "scores": scores,
+        "choice": best
+    })
     return best
 
 func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
@@ -148,6 +188,46 @@ func _act(tactic: String) -> void:
             _act_peel_back()
         "reserve":
             _act_reserve()
+        "probe_and_pull":
+            _act_probe_and_pull()
+        "recon_by_fire":
+            _act_recon_by_fire()
+        "fix_and_shift":
+            _act_fix_and_shift()
+
+func _evaluate(sense: Dictionary) -> void:
+    var new_goal: String = commander_intent.get("goal", "hold")
+    if sense.get("losing", false):
+        new_goal = "disengage"
+    elif sense.get("avg_suppression", 0.0) > 40.0:
+        new_goal = "fix"
+    elif sense.get("avg_fear", 0.0) < 0.4 and sense.get("avg_hp", 1.0) > 0.7:
+        new_goal = "probe"
+    else:
+        new_goal = "hold"
+    if new_goal != commander_intent.get("goal", "hold"):
+        commander_intent["goal"] = new_goal
+        Logger.log_telemetry("ai_intent_changed", {
+            "fireteam_id": fireteam_id,
+            "intent": new_goal
+        })
+        _log("Fireteam %d intent -> %s" % [fireteam_id, new_goal])
+        _record_timeline_event("Fireteam intent: %s" % new_goal)
+    var duration: float = TACTIC_DURATIONS.get(current_tactic, 6.0)
+    var success: bool = not sense.get("losing", false)
+    if tactic_timer >= duration:
+        success = success and sense.get("avg_hp", 1.0) > 0.5
+    var evaluation: Dictionary = {
+        "fireteam_id": fireteam_id,
+        "tactic": current_tactic,
+        "intent": commander_intent.get("goal", "hold"),
+        "success": success,
+        "avg_fear": sense.get("avg_fear", 0.0),
+        "avg_hp": sense.get("avg_hp", 1.0),
+        "avg_suppression": sense.get("avg_suppression", 0.0)
+    }
+    last_evaluation = evaluation
+    Logger.log_telemetry("ai_evaluate", evaluation)
 
 func _act_base_of_fire() -> void:
     for unit in units:
@@ -205,6 +285,51 @@ func _act_reserve() -> void:
             unit.hold_mode = "defensive"
             unit.attack_move = false
             unit.target_position = unit.global_position + away * 120.0
+        else:
+            unit.hold = true
+            unit.hold_mode = "aggressive"
+            unit.attack_move = true
+
+func _act_probe_and_pull() -> void:
+    var target: Vector2 = _get_enemy_position()
+    if target == null:
+        return
+    var probe_units: Array = _pick_subset(units, max(1, int(units.size() / 3.0)))
+    var direction: Vector2 = _side_direction(target)
+    for unit in units:
+        if probe_units.has(unit):
+            unit.hold = false
+            unit.hold_mode = "off"
+            unit.attack_move = true
+            unit.issue_move_order(target + direction * 120.0, false)
+        else:
+            unit.hold = true
+            unit.hold_mode = "defensive"
+            unit.attack_move = false
+
+func _act_recon_by_fire() -> void:
+    var target: Vector2 = _get_enemy_position()
+    if target == null:
+        return
+    for unit in units:
+        unit.hold = true
+        unit.hold_mode = "aggressive"
+        unit.attack_move = true
+        unit.target_position = unit.global_position
+
+func _act_fix_and_shift() -> void:
+    var target: Vector2 = _get_enemy_position()
+    if target == null:
+        return
+    if flank_units.is_empty():
+        flank_units = _pick_subset(units, max(1, int(units.size() / 2.0)))
+    var direction: Vector2 = _side_direction(target)
+    for unit in units:
+        if flank_units.has(unit):
+            unit.hold = false
+            unit.hold_mode = "off"
+            unit.attack_move = true
+            unit.issue_move_order(target + direction * 180.0, false)
         else:
             unit.hold = true
             unit.hold_mode = "aggressive"
@@ -306,3 +431,8 @@ func _should_update() -> bool:
 
 func _log(message: String) -> void:
     Logger.log_event(message)
+
+func _record_timeline_event(label: String) -> void:
+    var game: Node = get_tree().get_first_node_in_group("game")
+    if game != null and game.has_method("_record_timeline_event"):
+        game._record_timeline_event(label, {"fireteam_id": fireteam_id})
