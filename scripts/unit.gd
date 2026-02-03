@@ -158,6 +158,10 @@ func take_damage(amount: float, source: Unit) -> void:
     recent_damage_timer = 0.0
     _log_event("Unit %d took %.0f damage from Unit %d" % [id, amount, source.id])
     if hp <= 0.0:
+        var game := _get_game()
+        if game != null:
+            game.record_kill(cover_state, source)
+            game.award_xp(source, 10)
         _log_event("Unit %d was killed" % id)
         queue_free()
 

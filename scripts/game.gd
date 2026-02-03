@@ -8,6 +8,7 @@ extends Node2D
 @onready var debug_overlay = $DebugOverlay
 @onready var end_button = $HUD/EndButton
 @onready var selection_label: Label = $HUD/SelectionPanel/SelectionLabel
+@onready var objective_marker: Node2D = $ObjectiveMarker
 
 var last_selection_summary: String = ""
 
@@ -16,6 +17,12 @@ var current_formation_index: int = 1  # start at normal
 var unit_archetypes: Dictionary = {}
 var unit_roster: Dictionary = {}
 var fireteams: Dictionary = {}
+var match_stats: Dictionary = {}
+var hold_timer_player: float = 0.0
+var hold_timer_enemy: float = 0.0
+var match_over: bool = false
+const HOLD_THRESHOLD: float = 12.0
+const OBJECTIVE_CONTROL_MIN: int = 1
 
 const PLAYER_UNIT_COUNT: int = 8
 const TOTAL_UNIT_TARGET: int = 80
@@ -31,7 +38,10 @@ const MAP_BOUNDS: Rect2 = Rect2(Vector2.ZERO, Vector2(1600, 900))
 func _ready() -> void:
     add_to_group("game")
     unit_archetypes = _load_unit_archetypes()
+    _load_campaign_state()
     _spawn_match_units()
+    _setup_fireteam_ai()
+    _init_match_stats()
     debug_overlay.set_state("Game")
     end_button.pressed.connect(_on_end_pressed)
     # Log events
@@ -41,6 +51,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     _handle_camera_movement(delta)
     _update_selection_panel()
+    _update_objective(delta)
+    _check_victory_conditions()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Right‑click issues orders
@@ -105,6 +117,11 @@ func _on_end_pressed() -> void:
     _end_run()
 
 func _end_run() -> void:
+    if match_over:
+        return
+    match_over = true
+    _finalize_match_summary()
+    _save_campaign_state()
     Logger.log_event("State transition: Game -> AfterAction")
     get_tree().change_scene_to_file("res://scenes/AfterAction.tscn")
 
@@ -114,6 +131,7 @@ func spawn_player_units(count: int) -> void:
         var unit: Unit = scene.instantiate() as Unit
         unit.id = IDGenerator.next_id()
         _apply_unit_archetype(unit, "Rifle")
+        _apply_persisted_data(unit)
         unit.position = Vector2(150 + i * 20, 400)
         unit.add_to_group("player_units")
         add_child(unit)
@@ -129,8 +147,10 @@ func spawn_enemy_units(count: int) -> void:
         unit.set_script(load("res://scripts/ai_unit.gd"))
         var archetype := "Support" if i % 2 == 0 else "Scout"
         _apply_unit_archetype(unit, archetype)
+        _apply_persisted_data(unit)
         unit.position = Vector2(800 + i * 20, 200)
         unit.add_to_group("enemy_units")
+        unit.fireteam_id = fireteam_index
         if fireteam_size == 0:
             fireteam_size = FIRETEAM_MIN_SIZE + (fireteam_index % (FIRETEAM_MAX_SIZE - FIRETEAM_MIN_SIZE + 1))
             fireteams[fireteam_index] = []
@@ -143,6 +163,13 @@ func spawn_enemy_units(count: int) -> void:
         fireteam_size -= 1
         if fireteam_size <= 0:
             fireteam_index += 1
+
+func _setup_fireteam_ai() -> void:
+    var fireteam_scene := load("res://ai/fireteam_ai.gd")
+    for key in fireteams.keys():
+        var team_node := fireteam_scene.new()
+        add_child(team_node)
+        team_node.setup(int(key), fireteams[key])
 
 func _handle_camera_movement(delta: float) -> void:
     # Camera panning with WASD keys + edge scrolling
