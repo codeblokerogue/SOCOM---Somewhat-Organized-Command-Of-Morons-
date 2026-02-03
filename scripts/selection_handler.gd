@@ -27,8 +27,8 @@ func _input(event: InputEvent) -> void:
             else:
                 # Finish drag selection
                 selecting = false
-                var is_shift := Input.is_key_pressed(KEY_SHIFT)
-                var drag_distance := start_screen_pos.distance_to(event.position)
+                var is_shift: bool = Input.is_key_pressed(KEY_SHIFT)
+                var drag_distance: float = start_screen_pos.distance_to(event.position)
                 if drag_distance <= DRAG_THRESHOLD:
                     _handle_click_selection(_screen_to_world(event.position), is_shift, event.double_click)
                 else:
@@ -45,20 +45,20 @@ func _input(event: InputEvent) -> void:
 
 func _draw() -> void:
     if selecting:
-        var rect := current_rect
-        var fill_col := Color(0.1, 0.7, 1.0, 0.25)
-        var border_col := Color(0.1, 0.7, 1.0, 0.8)
+        var rect: Rect2 = current_rect
+        var fill_col: Color = Color(0.1, 0.7, 1.0, 0.25)
+        var border_col: Color = Color(0.1, 0.7, 1.0, 0.8)
         draw_rect(rect, fill_col, true)
         draw_rect(rect, border_col, false, 1.0)
 
 func _screen_to_world(screen_pos: Vector2) -> Vector2:
-    var camera := get_viewport().get_camera_2d()
+    var camera: Camera2D = get_viewport().get_camera_2d()
     if camera:
         return camera.unproject_position(screen_pos)
     return screen_pos
 
 func _handle_click_selection(world_pos: Vector2, add_to_selection: bool, is_double_click: bool) -> void:
-    var selected_unit := _get_unit_at_point(world_pos)
+    var selected_unit: Node2D = _get_unit_at_point(world_pos)
     if not add_to_selection:
         _clear_selection()
     if selected_unit != null:
@@ -71,7 +71,7 @@ func _handle_click_selection(world_pos: Vector2, add_to_selection: bool, is_doub
         last_clicked_unit = selected_unit
 
 func _handle_box_selection(add_to_selection: bool) -> void:
-    var rect := current_rect.abs()
+    var rect: Rect2 = current_rect.abs()
     var new_selection: Array = []
     for unit in get_tree().get_nodes_in_group("player_units"):
         if rect.has_point(unit.get_global_position()):
@@ -94,9 +94,9 @@ func _clear_selection() -> void:
 
 func _get_unit_at_point(world_pos: Vector2) -> Node2D:
     var closest: Node2D = null
-    var closest_dist := CLICK_RADIUS
+    var closest_dist: float = CLICK_RADIUS
     for unit in get_tree().get_nodes_in_group("player_units"):
-        var dist := unit.get_global_position().distance_to(world_pos)
+        var dist: float = unit.get_global_position().distance_to(world_pos)
         if dist <= closest_dist:
             closest = unit
             closest_dist = dist
