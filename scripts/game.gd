@@ -10,8 +10,10 @@ extends Node2D
 
 var formation_modes: Array = ["tight", "normal", "loose"]
 var current_formation_index: int = 1  # start at normal
+var unit_archetypes: Dictionary = {}
 
 func _ready() -> void:
+    unit_archetypes = _load_unit_archetypes()
     # Spawn initial units for testing.  In the final game this will be data-driven.
     spawn_player_units(4)
     spawn_enemy_units(4)
@@ -84,7 +86,7 @@ func spawn_player_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
     for i in range(count):
         var unit: Unit = scene.instantiate() as Unit
-        unit.role = "Rifle"
+        _apply_unit_archetype(unit, "Rifle")
         unit.position = Vector2(150 + i * 20, 400)
         unit.add_to_group("player_units")
         add_child(unit)
@@ -93,13 +95,13 @@ func spawn_enemy_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
     for i in range(count):
         var unit: Unit = scene.instantiate() as Unit
-        unit.role = "Support" if i % 2 == 0 else "Scout"
+        unit.set_script(load("res://scripts/ai_unit.gd"))
+        var archetype := "Support" if i % 2 == 0 else "Scout"
+        _apply_unit_archetype(unit, archetype)
         unit.position = Vector2(800 + i * 20, 200)
         unit.add_to_group("enemy_units")
         # Turn on attack behaviour for AI units
         unit.attack_move = true
-        # Override script with AI behaviour script
-        unit.set_script(load("res://scripts/ai_unit.gd"))
         add_child(unit)
 
 func _handle_camera_movement(delta: float) -> void:
@@ -117,3 +119,35 @@ func _handle_camera_movement(delta: float) -> void:
         move_vector = move_vector.normalized()
         camera.position += move_vector * 300.0 * delta
     # Zoom with mouse wheel handled by default (in editor) or can be bound here
+
+func _load_unit_archetypes() -> Dictionary:
+    var path := "res://data/units.json"
+    if not FileAccess.file_exists(path):
+        Logger.log_event("Unit data missing: %s" % path)
+        return {}
+    var file := FileAccess.open(path, FileAccess.READ)
+    var content := file.get_as_text()
+    var parsed = JSON.parse_string(content)
+    if typeof(parsed) != TYPE_DICTIONARY:
+        Logger.log_event("Unit data invalid JSON: %s" % path)
+        return {}
+    return parsed
+
+func _apply_unit_archetype(unit: Unit, archetype_name: String) -> void:
+    if not unit_archetypes.has(archetype_name):
+        Logger.log_event("Unknown archetype: %s" % archetype_name)
+        return
+    var data: Dictionary = unit_archetypes[archetype_name]
+    unit.role = archetype_name
+    if data.has("hp"):
+        unit.max_hp = int(data["hp"])
+    if data.has("speed"):
+        unit.speed = float(data["speed"])
+    if data.has("accuracy"):
+        unit.accuracy = float(data["accuracy"])
+    if data.has("suppression_resistance"):
+        unit.suppression_resistance = float(data["suppression_resistance"])
+    if data.has("role_tag"):
+        unit.role_tag = str(data["role_tag"])
+    if data.has("cost_tag"):
+        unit.cost_tag = str(data["cost_tag"])

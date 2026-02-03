@@ -19,7 +19,7 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Unit Spawning & Camera
 
-* [ ] **Data-driven units:** create a JSON file in `data/` describing archetypes (Rifle, Scout/SMG, Support/LMG) with stats (HP, speed, accuracy, suppression resistance, role tags). Load this data at runtime.
+* [x] **Data-driven units:** create a JSON file in `data/` describing archetypes (Rifle, Scout/SMG, Support/LMG) with stats (HP, speed, accuracy, suppression resistance, role tags). Load this data at runtime.
 * [ ] **Unique IDs:** implement a unique ID generator and assign IDs to all spawned units. Maintain a data structure for persistence (ID, XP, rank).
 * [ ] **Spawn player & AI units:** in the `Game` scene spawn 4–80 player units (mission dependent) and enough AI units to reach a total of 80–200. Group units into `player_units` and `enemy_units`. Assign AI units to fireteams.
 * [ ] **Camera:** add a `Camera2D` with edge scrolling and WASD panning, adjustable zoom and real-time pause. The camera should clamp to the map bounds.
