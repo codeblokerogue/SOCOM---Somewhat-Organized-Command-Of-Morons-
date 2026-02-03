@@ -16,6 +16,7 @@ func _ready() -> void:
     roster_button.pressed.connect(_on_roster_pressed)
     quit_button.pressed.connect(_on_quit_pressed)
     debug_overlay.set_state("Menu")
+    _maybe_start_playtest()
 
 func _on_start_pressed() -> void:
     # Start the match by loading the Game scene
@@ -33,3 +34,14 @@ func _on_roster_pressed() -> void:
 func _on_quit_pressed() -> void:
     # Exit the application
     get_tree().quit()
+
+func _maybe_start_playtest() -> void:
+    var args: Array = OS.get_cmdline_user_args()
+    if args.has("--playtest") or args.has("playtest"):
+        get_tree().set_meta("playtest_active", true)
+        Logger.log_event("Playtest flag detected; auto-starting")
+        call_deferred("_start_playtest")
+
+func _start_playtest() -> void:
+    Logger.log_event("State transition: Menu -> Game (playtest)")
+    get_tree().change_scene_to_file("res://scenes/Game.tscn")

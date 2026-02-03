@@ -1,71 +1,75 @@
 [gd_scene load_steps=6 format=2]
-
-# External script resources
 [ext_resource path="res://scripts/game.gd" type="Script" id=1]
 [ext_resource path="res://scripts/selection_handler.gd" type="Script" id=2]
 [ext_resource path="res://scripts/debug_overlay.gd" type="Script" id=3]
 [ext_resource path="res://scenes/Cover.tscn" type="PackedScene" id=4]
 [ext_resource path="res://scripts/objective_marker.gd" type="Script" id=5]
+[ext_resource path="res://scripts/map_modifiers.gd" type="Script" id=6]
 
 [node name="GameMap2" type="Node2D"]
 script = ExtResource(1)
 
-[node name="Camera2D" type="Camera2D" parent="GameMap2"]
+[node name="Camera2D" type="Camera2D" parent="."]
 current = true
 zoom = Vector2(1, 1)
 
-[node name="SelectionHandler" type="Node2D" parent="GameMap2"]
+[node name="SelectionHandler" type="Node2D" parent="."]
 script = ExtResource(2)
 
-[node name="DebugOverlay" type="Control" parent="GameMap2"]
+[node name="DebugOverlay" type="Control" parent="."]
 script = ExtResource(3)
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="HUD" type="CanvasLayer" parent="GameMap2"]
+[node name="HUD" type="CanvasLayer" parent="."]
 
-[node name="ObjectiveMarker" type="Node2D" parent="GameMap2"]
+[node name="ObjectiveMarker" type="Node2D" parent="."]
 position = Vector2(400, 260)
 script = ExtResource(5)
 radius = 100.0
 
-[node name="CoverLightA" parent="GameMap2" instance=ExtResource(4)]
+[node name="MapModifiers" type="Node" parent="."]
+script = ExtResource(6)
+night_enabled = true
+fog_enabled = true
+
+[node name="CoverLightA" parent="." instance=ExtResource(4)]
 position = Vector2(260, 320)
 
-[node name="CoverLightB" parent="GameMap2" instance=ExtResource(4)]
+[node name="CoverLightB" parent="." instance=ExtResource(4)]
 position = Vector2(460, 280)
 
-[node name="CoverLightC" parent="GameMap2" instance=ExtResource(4)]
+[node name="CoverLightC" parent="." instance=ExtResource(4)]
 position = Vector2(720, 520)
 
-[node name="CoverHeavyA" parent="GameMap2" instance=ExtResource(4)]
+[node name="CoverHeavyA" parent="." instance=ExtResource(4)]
 position = Vector2(820, 260)
 cover_type = "heavy"
 size = Vector2(90, 32)
 cover_radius = 44.0
 
-[node name="CoverHeavyB" parent="GameMap2" instance=ExtResource(4)]
+[node name="CoverHeavyB" parent="." instance=ExtResource(4)]
 position = Vector2(1020, 620)
 cover_type = "heavy"
 size = Vector2(80, 28)
 cover_radius = 40.0
 
-[node name="EndButton" type="Button" parent="GameMap2/HUD"]
+[node name="EndButton" type="Button" parent="HUD"]
 text = "End Run"
 anchor_left = 0.85
 anchor_top = 0.02
 anchor_right = 0.98
 anchor_bottom = 0.08
 
-[node name="SelectionPanel" type="Panel" parent="GameMap2/HUD"]
+[node name="SelectionPanel" type="Panel" parent="HUD"]
 anchor_left = 0.02
 anchor_top = 0.02
 anchor_right = 0.32
 anchor_bottom = 0.12
 
-[node name="SelectionLabel" type="Label" parent="GameMap2/HUD/SelectionPanel"]
+[node name="SelectionLabel" type="Label" parent="HUD/SelectionPanel"]
 text = "Selection: 0"
 anchor_left = 0.02
 anchor_top = 0.1

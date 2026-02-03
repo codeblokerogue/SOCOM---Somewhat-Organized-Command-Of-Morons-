@@ -16,19 +16,19 @@ func _on_back_pressed() -> void:
 func _load_roster() -> void:
     if roster_text == null:
         return
-    var path := "user://campaign.json"
+    var path: String = "user://campaign.json"
     var lines: Array = []
     if FileAccess.file_exists(path):
-        var file := FileAccess.open(path, FileAccess.READ)
+        var file: FileAccess = FileAccess.open(path, FileAccess.READ)
         if file != null:
             var parsed = JSON.parse_string(file.get_as_text())
             if typeof(parsed) == TYPE_DICTIONARY:
-                var units := parsed.get("units", [])
+                var units: Array = parsed.get("units", [])
                 for entry in units:
                     if typeof(entry) == TYPE_DICTIONARY:
-                        var unit_id := entry.get("id", "?")
-                        var xp := entry.get("xp", 0)
-                        var rank := entry.get("rank", 0)
+                        var unit_id: String = str(entry.get("id", "?"))
+                        var xp: int = entry.get("xp", 0)
+                        var rank: int = entry.get("rank", 0)
                         lines.append("Unit %s | XP %d | Rank %d" % [unit_id, xp, rank])
     if lines.is_empty():
         lines.append("No roster data available.")
