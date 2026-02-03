@@ -33,6 +33,9 @@ func _populate_summary() -> void:
     lines.append("Kills in open: %d" % summary.get("kills_in_open", 0))
     lines.append("XP awarded: %d" % summary.get("xp_awarded", 0))
     lines.append("Survivors (player/enemy): %d / %d" % [summary.get("survivors_player", 0), summary.get("survivors_enemy", 0)])
+    lines.append("Suppression peak (player/enemy): %.0f / %.0f" % [summary.get("suppression_peak_player", 0.0), summary.get("suppression_peak_enemy", 0.0)])
+    lines.append("Flank events: %d" % summary.get("flank_events", []).size())
+    lines.append("Timeline events: %d" % summary.get("timeline", []).size())
     summary_text.text = "\\n".join(lines)
 
 func _maybe_finish_playtest() -> void:

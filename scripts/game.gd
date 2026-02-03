@@ -63,6 +63,7 @@ func _process(delta: float) -> void:
     _handle_camera_movement(delta)
     _update_selection_panel()
     _update_objective(delta)
+    _update_suppression_stats()
     _check_victory_conditions()
 
 func _unhandled_input(event: InputEvent) -> void:
