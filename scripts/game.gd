@@ -29,6 +29,7 @@ const CAMERA_ZOOM_STEP: float = 0.1
 const MAP_BOUNDS: Rect2 = Rect2(Vector2.ZERO, Vector2(1600, 900))
 
 func _ready() -> void:
+    add_to_group("game")
     unit_archetypes = _load_unit_archetypes()
     _spawn_match_units()
     debug_overlay.set_state("Game")
@@ -220,6 +221,14 @@ func _apply_unit_archetype(unit: Unit, archetype_name: String) -> void:
         unit.speed = float(data["speed"])
     if data.has("accuracy"):
         unit.accuracy = float(data["accuracy"])
+    if data.has("weapon_range"):
+        unit.weapon_range = float(data["weapon_range"])
+    if data.has("rate_of_fire"):
+        unit.rate_of_fire = float(data["rate_of_fire"])
+    if data.has("damage"):
+        unit.damage = float(data["damage"])
+    if data.has("suppression_power"):
+        unit.suppression_power = float(data["suppression_power"])
     if data.has("suppression_resistance"):
         unit.suppression_resistance = float(data["suppression_resistance"])
     if data.has("role_tag"):
@@ -273,3 +282,62 @@ func _toggle_hold_mode() -> void:
     if selection_handler.selection.size() > 0:
         mode_label = selection_handler.selection[0].hold_mode
     Logger.log_event("Hold mode set to %s" % mode_label)
+
+func is_line_of_sight(from_pos: Vector2, to_pos: Vector2, target: Node2D = null) -> bool:
+    var space_state := get_world_2d().direct_space_state
+    var params := PhysicsRayQueryParameters2D.create(from_pos, to_pos)
+    params.exclude = target != null ? [target] : []
+    params.collision_mask = 1
+    var result := space_state.intersect_ray(params)
+    if result.is_empty():
+        return true
+    var collider := result.get("collider")
+    if collider != null and collider.is_in_group("cover") and target != null:
+        var cover := collider
+        if "cover_radius" in cover:
+            if cover.global_position.distance_to(target.global_position) <= cover.cover_radius:
+                return true
+    return false
+
+func get_cover_state(target: Unit, source_pos: Vector2) -> Dictionary:
+    var best_type := "none"
+    var best_weight := 0.0
+    for cover in get_tree().get_nodes_in_group("cover"):
+        if not (cover is Node2D):
+            continue
+        if not ("cover_radius" in cover):
+            continue
+        var dist_to_target := cover.global_position.distance_to(target.global_position)
+        if dist_to_target > cover.cover_radius:
+            continue
+        var to_source := (source_pos - target.global_position).normalized()
+        var to_cover := (cover.global_position - target.global_position).normalized()
+        var facing := to_source.dot(to_cover)
+        if facing < 0.4:
+            continue
+        if source_pos.distance_to(cover.global_position) >= source_pos.distance_to(target.global_position):
+            continue
+        var cover_type := cover.cover_type if "cover_type" in cover else "light"
+        var weight := 1.0 if cover_type == "heavy" else 0.5
+        if weight > best_weight:
+            best_weight = weight
+            best_type = cover_type
+    match best_type:
+        "heavy":
+            return {
+                "type": "heavy",
+                "hit_multiplier": 0.5,
+                "damage_multiplier": 0.7
+            }
+        "light":
+            return {
+                "type": "light",
+                "hit_multiplier": 0.75,
+                "damage_multiplier": 0.85
+            }
+        _:
+            return {
+                "type": "none",
+                "hit_multiplier": 1.0,
+                "damage_multiplier": 1.0
+            }

@@ -44,18 +44,26 @@ func _draw() -> void:
     for line in event_log:
         draw_string(font, Vector2(10, y_offset), line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1))
         y_offset += line_height
-    # Optionally draw suppression bars for all units
-    for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
-        # Convert world position to screen space via camera
-        var world_pos: Vector2 = unit.global_position
-        var viewport := get_viewport()
-        var cam := viewport.get_camera_2d()
-        if cam == null:
-            continue
-        var screen_pos: Vector2 = cam.to_screen(world_pos)
-        var bar_width: float = 30.0
-        var bar_height: float = 4.0
-        var pct: float = clamp(unit.suppression / 100.0, 0.0, 1.0)
-        var rect := Rect2(screen_pos + Vector2(-bar_width / 2.0, -28.0), Vector2(bar_width, bar_height))
-        draw_rect(rect, Color(0.2, 0.2, 0.2, 0.7), true)
-        draw_rect(Rect2(rect.position, Vector2(bar_width * pct, bar_height)), Color(1.0, 0.0, 0.0, 0.9), true)
+    var viewport := get_viewport()
+    var cam := viewport.get_camera_2d()
+    if cam == null:
+        return
+    var game := get_tree().get_first_node_in_group("game")
+    if game != null:
+        var selection_handler := game.get_node_or_null("SelectionHandler")
+        if selection_handler != null:
+            var mouse_world: Vector2 = game.get_global_mouse_position()
+            var mouse_screen: Vector2 = cam.to_screen(mouse_world)
+            for unit in selection_handler.selection:
+                var start_screen: Vector2 = cam.to_screen(unit.global_position)
+                var has_los: bool = game.is_line_of_sight(unit.global_position, mouse_world, null)
+                var line_col := Color(0.2, 1.0, 0.2, 0.7) if has_los else Color(1.0, 0.2, 0.2, 0.7)
+                draw_line(start_screen, mouse_screen, line_col, 1.0)
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        for entry in unit.last_known_positions.values():
+            var age: float = entry["age"]
+            var pos: Vector2 = entry["pos"]
+            var fade_time: float = unit.LAST_KNOWN_FADE if "LAST_KNOWN_FADE" in unit else 6.0
+            var alpha: float = clamp(1.0 - (age / fade_time), 0.0, 1.0)
+            var screen_pos: Vector2 = cam.to_screen(pos)
+            draw_circle(screen_pos, 4.0, Color(1.0, 1.0, 1.0, alpha))
