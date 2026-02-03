@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://scripts/roster.gd" type="Script" id=1]
+[ext_resource path="res://scripts/debug_overlay.gd" type="Script" id=2]
+
+[node name="Roster" type="Control"]
+script = ExtResource(1)
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Title" type="Label" parent="Roster"]
+text = "Roster"
+anchor_left = 0.4
+anchor_top = 0.1
+anchor_right = 0.6
+anchor_bottom = 0.2
+
+[node name="RosterText" type="RichTextLabel" parent="Roster"]
+anchor_left = 0.2
+anchor_top = 0.25
+anchor_right = 0.8
+anchor_bottom = 0.75
+text = ""
+fit_content = true
+
+[node name="BackButton" type="Button" parent="Roster"]
+text = "Back"
+anchor_left = 0.45
+anchor_top = 0.8
+anchor_right = 0.55
+anchor_bottom = 0.85
+
+[node name="DebugOverlay" type="Control" parent="Roster"]
+script = ExtResource(2)
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0

@@ -9,6 +9,11 @@ var visible_overlay: bool = true
 var event_log: Array = []
 var current_state: String = "Unknown"
 const MAX_EVENTS: int = 20
+var show_nav_paths: bool = false
+var show_cover_edges: bool = false
+var show_los: bool = true
+var show_suppression_heat: bool = false
+var show_ai_tactics: bool = false
 
 func _ready() -> void:
     # Add to a group so other scripts can send log events
@@ -20,6 +25,21 @@ func _input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed:
         if event.scancode == KEY_F1:
             visible_overlay = not visible_overlay
+            queue_redraw()
+        elif event.scancode == KEY_F2:
+            show_nav_paths = not show_nav_paths
+            queue_redraw()
+        elif event.scancode == KEY_F3:
+            show_cover_edges = not show_cover_edges
+            queue_redraw()
+        elif event.scancode == KEY_F4:
+            show_los = not show_los
+            queue_redraw()
+        elif event.scancode == KEY_F5:
+            show_suppression_heat = not show_suppression_heat
+            queue_redraw()
+        elif event.scancode == KEY_F6:
+            show_ai_tactics = not show_ai_tactics
             queue_redraw()
 
 func log_event(text: String) -> void:
