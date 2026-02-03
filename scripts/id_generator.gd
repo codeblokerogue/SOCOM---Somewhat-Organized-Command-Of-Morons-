@@ -8,6 +8,6 @@ class_name IDGenerator
 static var _next_id: int = 1
 
 static func next_id() -> int:
-    var id := _next_id
+    var id: int = _next_id
     _next_id += 1
     return id

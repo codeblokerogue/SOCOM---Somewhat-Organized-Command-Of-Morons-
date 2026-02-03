@@ -12,5 +12,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Godot
         run: ./scripts/install_godot.sh
+      - name: Headless autoplay playtest
+        run: ./scripts/playtest_headless.sh
       - name: Headless project check
         run: ./.tools/godot/godot --headless --quit --path .

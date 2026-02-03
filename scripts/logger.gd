@@ -15,7 +15,7 @@ func log_event(text: String) -> void:
         get_tree().call_group("debug_overlay", "log_event", text)
 
 func dump_to_file(path: String) -> void:
-    var file := FileAccess.open(path, FileAccess.WRITE)
+    var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
     if file == null:
         return
     for entry in event_log:
