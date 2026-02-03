@@ -20,7 +20,6 @@ var unit_archetypes: Dictionary = {}
 var unit_roster: Dictionary = {}
 var fireteams: Dictionary = {}
 var match_stats: Dictionary = {}
-var combat_timeline: Array = []
 var control_groups: Dictionary = {}
 var hold_timer_player: float = 0.0
 var hold_timer_enemy: float = 0.0
@@ -346,30 +345,7 @@ func _toggle_hold_mode() -> void:
     Logger.log_event("Hold mode set to %s" % mode_label)
 
 func _handle_control_group_input(_event: InputEvent) -> void:
-    if not (_event is InputEventKey):
-        return
-    var key_event: InputEventKey = _event
-    if key_event.keycode < KEY_1 or key_event.keycode > KEY_9:
-        return
-    var group_index: int = key_event.keycode - KEY_1 + 1
-    if key_event.ctrl_pressed:
-        var snapshot: Array = []
-        for unit in selection_handler.selection:
-            if is_instance_valid(unit):
-                snapshot.append(unit)
-        control_groups[group_index] = snapshot
-        Logger.log_event("Control group %d assigned (%d units)" % [group_index, snapshot.size()])
-    else:
-        if not control_groups.has(group_index):
-            return
-        var units: Array = []
-        for unit in control_groups[group_index]:
-            if is_instance_valid(unit) and unit.is_in_group("player_units"):
-                units.append(unit)
-        if units.is_empty():
-            return
-        selection_handler.select_units(units, key_event.shift_pressed)
-        Logger.log_event("Control group %d selected (%d units)" % [group_index, units.size()])
+    return
 
 func is_line_of_sight(from_pos: Vector2, to_pos: Vector2, target: Node2D = null) -> bool:
     var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
@@ -440,15 +416,10 @@ func _init_match_stats() -> void:
         "objective_winner": "None",
         "end_reason": "In Progress",
         "survivors_player": 0,
-        "survivors_enemy": 0,
-        "suppression_peak_player": 0.0,
-        "suppression_peak_enemy": 0.0,
-        "flank_events": [],
-        "timeline": []
+        "survivors_enemy": 0
     }
     hold_timer_player = 0.0
     hold_timer_enemy = 0.0
-    combat_timeline.clear()
 
 func _update_objective(delta: float) -> void:
     if match_over:
@@ -491,40 +462,6 @@ func _check_victory_conditions() -> void:
         match_stats["end_reason"] = "Victory"
         _end_run()
 
-func _update_suppression_stats() -> void:
-    var player_peak: float = 0.0
-    var enemy_peak: float = 0.0
-    for unit in get_tree().get_nodes_in_group("player_units"):
-        if unit.suppression > player_peak:
-            player_peak = unit.suppression
-    for unit in get_tree().get_nodes_in_group("enemy_units"):
-        if unit.suppression > enemy_peak:
-            enemy_peak = unit.suppression
-    match_stats["suppression_peak_player"] = max(match_stats["suppression_peak_player"], player_peak)
-    match_stats["suppression_peak_enemy"] = max(match_stats["suppression_peak_enemy"], enemy_peak)
-
-func _record_timeline(event_label: String) -> void:
-    var timestamp := Time.get_ticks_msec()
-    combat_timeline.append({"t": timestamp, "event": event_label})
-
-func _evaluate_flank(source: Node, target: Node) -> void:
-    var source_pos: Vector2 = source.global_position
-    var target_pos: Vector2 = target.global_position
-    var base_pos: Vector2 = Vector2(200, 450)
-    if target.is_in_group("player_units"):
-        base_pos = Vector2(900, 260)
-    var to_target: Vector2 = (target_pos - base_pos).normalized()
-    var to_source: Vector2 = (source_pos - target_pos).normalized()
-    var flank_score: float = abs(to_target.dot(to_source))
-    if flank_score <= 0.25:
-        var entry := {
-            "attacker_id": source.id,
-            "target_id": target.id,
-            "side": "flank",
-            "distance": source_pos.distance_to(target_pos)
-        }
-        match_stats["flank_events"].append(entry)
-
 func record_kill(cover_state: String, source: Node) -> void:
     if source != null and source.is_in_group("player_units"):
         match_stats["player_kills"] += 1
@@ -534,13 +471,6 @@ func record_kill(cover_state: String, source: Node) -> void:
         match_stats["kills_in_open"] += 1
     else:
         match_stats["kills_in_cover"] += 1
-    _record_timeline("kill")
-
-func record_shot(source: Node, target: Node) -> void:
-    if source == null or target == null:
-        return
-    _evaluate_flank(source, target)
-    _record_timeline("shot")
 
 func award_xp(unit: Node, amount: int) -> void:
     if unit == null:
@@ -553,10 +483,8 @@ func award_xp(unit: Node, amount: int) -> void:
         unit_roster[unit.id]["rank"] = unit.rank
 
 func _finalize_match_summary() -> void:
-    _update_suppression_stats()
     match_stats["survivors_player"] = get_tree().get_nodes_in_group("player_units").size()
     match_stats["survivors_enemy"] = get_tree().get_nodes_in_group("enemy_units").size()
-    match_stats["timeline"] = combat_timeline
     if match_stats.get("end_reason", "") == "In Progress":
         match_stats["end_reason"] = "Unknown"
     get_tree().set_meta("match_summary", match_stats)

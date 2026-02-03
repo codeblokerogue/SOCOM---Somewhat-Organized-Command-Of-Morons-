@@ -146,9 +146,6 @@ func _attack_logic(delta: float) -> void:
         var distance_factor: float = clamp(1.0 - (min_dist / weapon_range) * 0.4, 0.5, 1.0)
         var cover_data: Dictionary = _get_cover_data(nearest)
         var hit_chance: float = base_accuracy * distance_factor * movement_factor * cover_data["hit_multiplier"]
-        var game: Node = _get_game()
-        if game != null:
-            game.record_shot(self, nearest)
         if randf() <= hit_chance:
             var final_damage: float = damage * cover_data["damage_multiplier"]
             nearest.take_damage(final_damage, self)

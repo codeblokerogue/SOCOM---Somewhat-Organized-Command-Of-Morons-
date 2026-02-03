@@ -48,7 +48,6 @@ This repository follows **PRD v1.0** and delivers a playable top‑down tactics 
 - **F** — cycle formation spacing (tight/normal/loose).
 - **Space** — pause/unpause.
 - **W/A/S/D or mouse edges** — pan the camera. **Mouse wheel** zooms.
-- **Ctrl + 1–9** — assign control group. **1–9** selects group; **Shift** adds to selection.
 - **F1** — toggle debug event log. **F2‑F6** toggle overlay stubs (nav paths/cover/LoS/suppression/tactics).
 
 ## Playtesting
