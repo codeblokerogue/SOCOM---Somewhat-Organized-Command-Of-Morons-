@@ -26,8 +26,8 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Selection & UI
 
-* [ ] **RTS selection:** implement drag-box selection using the left mouse button. Shift-drag adds to the current selection; click selects a single unit. Provide visual feedback (highlight or outline) on selected units.
-* [ ] **Selection panel:** display the count and roles of currently selected units in a minimal UI element.
+* [x] **RTS selection:** implement drag-box selection using the left mouse button. Shift-drag adds to the current selection; click selects a single unit. Provide visual feedback (highlight or outline) on selected units.
+* [x] **Selection panel:** display the count and roles of currently selected units in a minimal UI element.
 
 ### Movement & Orders
 
