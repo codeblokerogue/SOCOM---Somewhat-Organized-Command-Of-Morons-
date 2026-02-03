@@ -39,7 +39,6 @@ var hold_mode: String = "off"
 var recent_damage_timer: float = 999.0
 var cover_state: String = "none"
 var last_known_positions: Dictionary = {}
-var fireteam_id: int = -1
 const LAST_KNOWN_FADE: float = 6.0
 
 func _ready() -> void:
