@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends Control
 
 ##
 # A simple overlay that logs and displays game events and optionally suppression bars.
@@ -7,12 +7,14 @@ extends CanvasLayer
 
 var visible_overlay: bool = true
 var event_log: Array = []
+var current_state: String = "Unknown"
 const MAX_EVENTS: int = 20
 
 func _ready() -> void:
     # Add to a group so other scripts can send log events
     add_to_group("debug_overlay")
     set_process(false)
+    queue_redraw()
 
 func _input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed:
@@ -26,14 +28,21 @@ func log_event(text: String) -> void:
         event_log.pop_front()
     queue_redraw()
 
+func set_state(state: String) -> void:
+    current_state = state
+    queue_redraw()
+
 func _draw() -> void:
     if not visible_overlay:
         return
     var y_offset: float = 10.0
     var line_height: float = 14.0
     var font := get_theme_default_font()
+    var font_size := get_theme_default_font_size()
+    draw_string(font, Vector2(10, y_offset), "State: %s" % current_state, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 0.4))
+    y_offset += line_height
     for line in event_log:
-        draw_string(font, Vector2(10, y_offset), line, Color(1, 1, 1))
+        draw_string(font, Vector2(10, y_offset), line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1))
         y_offset += line_height
     # Optionally draw suppression bars for all units
     for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
@@ -43,7 +52,7 @@ func _draw() -> void:
         var cam := viewport.get_camera_2d()
         if cam == null:
             continue
-        var screen_pos := cam.to_screen(world_pos)
+        var screen_pos: Vector2 = cam.to_screen(world_pos)
         var bar_width: float = 30.0
         var bar_height: float = 4.0
         var pct: float = clamp(unit.suppression / 100.0, 0.0, 1.0)

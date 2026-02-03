@@ -13,9 +13,9 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Core Loop & Flow
 
-* [ ] **Main menu:** build `MainMenu.tscn` with Start and Quit buttons. Hook Start to load the `Game` scene and Quit to exit the application.
-* [ ] **Game & AfterAction scenes:** create `Game.tscn` and `AfterAction.tscn`. `Game` contains the playable match; `AfterAction` shows a summary after win/lose and returns to the menu.
-* [ ] **State flow:** wire up transitions: Menu → Game → AfterAction → Menu. Implement a pause (spacebar) that halts all in-game processing.
+* [x] **Main menu:** build `MainMenu.tscn` with Start and Quit buttons. Hook Start to load the `Game` scene and Quit to exit the application.
+* [x] **Game & AfterAction scenes:** create `Game.tscn` and `AfterAction.tscn`. `Game` contains the playable match; `AfterAction` shows a summary after win/lose and returns to the menu.
+* [x] **State flow:** wire up transitions: Menu → Game → AfterAction → Menu. Implement a pause (spacebar) that halts all in-game processing.
 
 ### Unit Spawning & Camera
 
