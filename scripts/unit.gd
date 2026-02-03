@@ -17,6 +17,8 @@ class_name Unit
 @export var cost_tag: String = "basic"
 
 var id: int = 0
+var xp: int = 0
+var rank: int = 0
 var hp: float
 var suppression: float = 0.0
 var selected: bool = false
@@ -28,7 +30,6 @@ var time_since_shot: float = 0.0
 var velocity: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
-    id = IDGenerator.next_id()
     hp = max_hp
     target_position = global_position
     # Add to appropriate group in Game.gd

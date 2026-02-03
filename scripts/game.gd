@@ -11,12 +11,23 @@ extends Node2D
 var formation_modes: Array = ["tight", "normal", "loose"]
 var current_formation_index: int = 1  # start at normal
 var unit_archetypes: Dictionary = {}
+var unit_roster: Dictionary = {}
+var fireteams: Dictionary = {}
+
+const PLAYER_UNIT_COUNT: int = 8
+const TOTAL_UNIT_TARGET: int = 80
+const FIRETEAM_MIN_SIZE: int = 2
+const FIRETEAM_MAX_SIZE: int = 6
+const CAMERA_SPEED: float = 300.0
+const CAMERA_EDGE_MARGIN: float = 24.0
+const CAMERA_ZOOM_MIN: float = 0.6
+const CAMERA_ZOOM_MAX: float = 1.6
+const CAMERA_ZOOM_STEP: float = 0.1
+const MAP_BOUNDS: Rect2 = Rect2(Vector2.ZERO, Vector2(1600, 900))
 
 func _ready() -> void:
     unit_archetypes = _load_unit_archetypes()
-    # Spawn initial units for testing.  In the final game this will be data-driven.
-    spawn_player_units(4)
-    spawn_enemy_units(4)
+    _spawn_match_units()
     debug_overlay.set_state("Game")
     end_button.pressed.connect(_on_end_pressed)
     # Log events
@@ -74,6 +85,11 @@ func _unhandled_input(event: InputEvent) -> void:
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
             Logger.log_event("Formation mode set to %s" % mode)
+    if event is InputEventMouseButton and event.pressed:
+        if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+            _adjust_camera_zoom(-CAMERA_ZOOM_STEP)
+        elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+            _adjust_camera_zoom(CAMERA_ZOOM_STEP)
 
 func _on_end_pressed() -> void:
     _end_run()
@@ -86,26 +102,40 @@ func spawn_player_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
     for i in range(count):
         var unit: Unit = scene.instantiate() as Unit
+        unit.id = IDGenerator.next_id()
         _apply_unit_archetype(unit, "Rifle")
         unit.position = Vector2(150 + i * 20, 400)
         unit.add_to_group("player_units")
         add_child(unit)
+        _register_unit(unit)
 
 func spawn_enemy_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
+    var fireteam_index := 0
+    var fireteam_size := 0
     for i in range(count):
         var unit: Unit = scene.instantiate() as Unit
+        unit.id = IDGenerator.next_id()
         unit.set_script(load("res://scripts/ai_unit.gd"))
         var archetype := "Support" if i % 2 == 0 else "Scout"
         _apply_unit_archetype(unit, archetype)
         unit.position = Vector2(800 + i * 20, 200)
         unit.add_to_group("enemy_units")
+        if fireteam_size == 0:
+            fireteam_size = FIRETEAM_MIN_SIZE + (fireteam_index % (FIRETEAM_MAX_SIZE - FIRETEAM_MIN_SIZE + 1))
+            fireteams[fireteam_index] = []
+        unit.add_to_group("fireteam_%d" % fireteam_index)
         # Turn on attack behaviour for AI units
         unit.attack_move = true
         add_child(unit)
+        _register_unit(unit)
+        fireteams[fireteam_index].append(unit)
+        fireteam_size -= 1
+        if fireteam_size <= 0:
+            fireteam_index += 1
 
 func _handle_camera_movement(delta: float) -> void:
-    # Simple camera panning with WASD keys
+    # Camera panning with WASD keys + edge scrolling
     var move_vector := Vector2.ZERO
     if Input.is_key_pressed(KEY_W):
         move_vector.y -= 1
@@ -115,10 +145,46 @@ func _handle_camera_movement(delta: float) -> void:
         move_vector.x -= 1
     if Input.is_key_pressed(KEY_D):
         move_vector.x += 1
+    var viewport_size := get_viewport().get_visible_rect().size
+    var mouse_pos := get_viewport().get_mouse_position()
+    if mouse_pos.x <= CAMERA_EDGE_MARGIN:
+        move_vector.x -= 1
+    elif mouse_pos.x >= viewport_size.x - CAMERA_EDGE_MARGIN:
+        move_vector.x += 1
+    if mouse_pos.y <= CAMERA_EDGE_MARGIN:
+        move_vector.y -= 1
+    elif mouse_pos.y >= viewport_size.y - CAMERA_EDGE_MARGIN:
+        move_vector.y += 1
     if move_vector != Vector2.ZERO:
         move_vector = move_vector.normalized()
-        camera.position += move_vector * 300.0 * delta
-    # Zoom with mouse wheel handled by default (in editor) or can be bound here
+        camera.position += move_vector * CAMERA_SPEED * delta
+    _clamp_camera_to_bounds()
+
+func _adjust_camera_zoom(delta: float) -> void:
+    var new_zoom := clamp(camera.zoom.x + delta, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX)
+    camera.zoom = Vector2(new_zoom, new_zoom)
+    _clamp_camera_to_bounds()
+
+func _clamp_camera_to_bounds() -> void:
+    var viewport_size := get_viewport().get_visible_rect().size
+    var half_view := viewport_size * 0.5 * camera.zoom
+    var min_pos := MAP_BOUNDS.position + half_view
+    var max_pos := MAP_BOUNDS.position + MAP_BOUNDS.size - half_view
+    if min_pos.x > max_pos.x:
+        camera.position.x = MAP_BOUNDS.position.x + MAP_BOUNDS.size.x * 0.5
+    else:
+        camera.position.x = clamp(camera.position.x, min_pos.x, max_pos.x)
+    if min_pos.y > max_pos.y:
+        camera.position.y = MAP_BOUNDS.position.y + MAP_BOUNDS.size.y * 0.5
+    else:
+        camera.position.y = clamp(camera.position.y, min_pos.y, max_pos.y)
+
+func _spawn_match_units() -> void:
+    var player_count := clamp(PLAYER_UNIT_COUNT, 4, 80)
+    var total_target := clamp(TOTAL_UNIT_TARGET, 80, 200)
+    var enemy_count := max(total_target - player_count, 0)
+    spawn_player_units(player_count)
+    spawn_enemy_units(enemy_count)
 
 func _load_unit_archetypes() -> Dictionary:
     var path := "res://data/units.json"
@@ -151,3 +217,12 @@ func _apply_unit_archetype(unit: Unit, archetype_name: String) -> void:
         unit.role_tag = str(data["role_tag"])
     if data.has("cost_tag"):
         unit.cost_tag = str(data["cost_tag"])
+
+func _register_unit(unit: Unit) -> void:
+    if unit_roster.has(unit.id):
+        return
+    unit_roster[unit.id] = {
+        "id": unit.id,
+        "xp": unit.xp,
+        "rank": unit.rank
+    }
