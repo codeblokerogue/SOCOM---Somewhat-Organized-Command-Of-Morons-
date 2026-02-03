@@ -47,20 +47,17 @@ func _unhandled_input(event: InputEvent) -> void:
         var pos := get_global_mouse_position()
         # Determine order type based on keyboard state
         var attack_move := Input.is_key_pressed(KEY_A)
-        var hold := Input.is_key_pressed(KEY_H)
+        var queue := event.shift_pressed
         # Issue to all selected units
         for unit in selection_handler.selection:
-            unit.target_position = pos
+            unit.issue_move_order(pos, queue)
             unit.attack_move = attack_move
-            unit.hold = hold
-            # Reset spread offset; will be set when formation modes implemented
-            unit.spread_offset = Vector2.ZERO
+            unit.hold = false
+            unit.hold_mode = "off"
         # Log order
         var order_name := "Move"
         if attack_move:
             order_name = "Attack‑move"
-        elif hold:
-            order_name = "Hold"
         Logger.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
     elif event is InputEventKey and event.pressed:
         if event.scancode == KEY_ESCAPE:
@@ -70,21 +67,29 @@ func _unhandled_input(event: InputEvent) -> void:
             # Pause/unpause
             get_tree().paused = not get_tree().paused
             Logger.log_event("Game paused" if get_tree().paused else "Game resumed")
+        elif event.scancode == KEY_H:
+            _toggle_hold_mode()
         elif event.scancode == KEY_F:
             # Cycle formation spacing
             current_formation_index = (current_formation_index + 1) % formation_modes.size()
             var mode := formation_modes[current_formation_index]
             # Apply spacing radius to selected units (stub)
             var spacing := 0.0
+            var avoidance := 0.0
             match mode:
                 "tight":
-                    spacing = 0.0
+                    spacing = 12.0
+                    avoidance = 8.0
                 "normal":
-                    spacing = 16.0
+                    spacing = 18.0
+                    avoidance = 10.0
                 "loose":
-                    spacing = 32.0
+                    spacing = 28.0
+                    avoidance = 16.0
             for i in range(selection_handler.selection.size()):
                 var unit = selection_handler.selection[i]
+                unit.separation_radius = spacing
+                unit.avoidance_radius = avoidance
                 # assign radial offset around target to spread units
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
@@ -250,3 +255,21 @@ func _update_selection_panel() -> void:
     if summary != last_selection_summary:
         selection_label.text = summary
         last_selection_summary = summary
+
+func _toggle_hold_mode() -> void:
+    var cycle := ["off", "defensive", "aggressive"]
+    for unit in selection_handler.selection:
+        var index := cycle.find(unit.hold_mode)
+        if index == -1:
+            index = 0
+        var next_index := (index + 1) % cycle.size()
+        unit.hold_mode = cycle[next_index]
+        unit.hold = unit.hold_mode != "off"
+        unit.attack_move = unit.hold_mode == "aggressive"
+        if unit.hold:
+            unit.waypoints = []
+            unit.target_position = unit.global_position
+    var mode_label := "off"
+    if selection_handler.selection.size() > 0:
+        mode_label = selection_handler.selection[0].hold_mode
+    Logger.log_event("Hold mode set to %s" % mode_label)
