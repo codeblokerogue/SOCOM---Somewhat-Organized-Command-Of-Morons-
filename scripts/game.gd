@@ -637,21 +637,6 @@ func _sync_roster_from_units() -> void:
             unit_roster[unit.id]["xp"] = unit.xp
             unit_roster[unit.id]["rank"] = unit.rank
 
-func _get_assigned_units() -> Array:
-    var assigned: Array = []
-    for entry in unit_roster.values():
-        if typeof(entry) == TYPE_DICTIONARY and entry.get("assigned", true):
-            assigned.append(entry)
-    assigned.sort_custom(func(a, b): return int(a.get("id", 0)) < int(b.get("id", 0)))
-    return assigned
-
-func _sync_id_generator() -> void:
-    var max_id: int = 0
-    for entry in unit_roster.values():
-        if typeof(entry) == TYPE_DICTIONARY:
-            max_id = max(max_id, int(entry.get("id", 0)))
-    IDGenerator.sync_next_id(max_id)
-
 func _update_suppression_stats() -> void:
     var peak_player: float = 0.0
     var peak_enemy: float = 0.0

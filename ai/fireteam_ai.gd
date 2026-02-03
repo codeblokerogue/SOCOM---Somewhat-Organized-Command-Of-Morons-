@@ -229,6 +229,40 @@ func _evaluate(sense: Dictionary) -> void:
     last_evaluation = evaluation
     Logger.log_telemetry("ai_evaluate", evaluation)
 
+func _evaluate(sense: Dictionary) -> void:
+    var new_goal: String = commander_intent.get("goal", "hold")
+    if sense.get("losing", false):
+        new_goal = "disengage"
+    elif sense.get("avg_suppression", 0.0) > 40.0:
+        new_goal = "fix"
+    elif sense.get("avg_fear", 0.0) < 0.4 and sense.get("avg_hp", 1.0) > 0.7:
+        new_goal = "probe"
+    else:
+        new_goal = "hold"
+    if new_goal != commander_intent.get("goal", "hold"):
+        commander_intent["goal"] = new_goal
+        Logger.log_telemetry("ai_intent_changed", {
+            "fireteam_id": fireteam_id,
+            "intent": new_goal
+        })
+        _log("Fireteam %d intent -> %s" % [fireteam_id, new_goal])
+        _record_timeline_event("Fireteam intent: %s" % new_goal)
+    var duration: float = TACTIC_DURATIONS.get(current_tactic, 6.0)
+    var success: bool = not sense.get("losing", false)
+    if tactic_timer >= duration:
+        success = success and sense.get("avg_hp", 1.0) > 0.5
+    var evaluation: Dictionary = {
+        "fireteam_id": fireteam_id,
+        "tactic": current_tactic,
+        "intent": commander_intent.get("goal", "hold"),
+        "success": success,
+        "avg_fear": sense.get("avg_fear", 0.0),
+        "avg_hp": sense.get("avg_hp", 1.0),
+        "avg_suppression": sense.get("avg_suppression", 0.0)
+    }
+    last_evaluation = evaluation
+    Logger.log_telemetry("ai_evaluate", evaluation)
+
 func _act_base_of_fire() -> void:
     for unit in units:
         unit.hold = true
