@@ -26,6 +26,8 @@ var hold_timer_enemy: float = 0.0
 var match_over: bool = false
 var playtest_active: bool = false
 var playtest_runner: Node = null
+var match_time: float = 0.0
+var suppression_heatmap: Dictionary = {}
 const HOLD_THRESHOLD: float = 12.0
 const OBJECTIVE_CONTROL_MIN: int = 1
 
@@ -60,6 +62,7 @@ func _ready() -> void:
         _start_playtest_runner()
 
 func _process(delta: float) -> void:
+    match_time += delta
     _handle_camera_movement(delta)
     _update_selection_panel()
     _update_objective(delta)
@@ -84,6 +87,16 @@ func _unhandled_input(event: InputEvent) -> void:
         if attack_move:
             order_name = "Attack‑move"
         Logger.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
+        _record_timeline_event("%s order" % order_name, {
+            "unit_count": selection_handler.selection.size(),
+            "position": {"x": pos.x, "y": pos.y}
+        })
+        Logger.log_telemetry("order_issued", {
+            "order": order_name,
+            "unit_count": selection_handler.selection.size(),
+            "pos_x": pos.x,
+            "pos_y": pos.y
+        })
     elif event is InputEventKey and event.pressed:
         if event.keycode == KEY_ESCAPE:
             _end_run()
@@ -119,6 +132,7 @@ func _unhandled_input(event: InputEvent) -> void:
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
             Logger.log_event("Formation mode set to %s" % mode)
+            _record_timeline_event("Formation spacing: %s" % mode)
         else:
             _handle_control_group_input(event)
     if event is InputEventMouseButton and event.pressed:
@@ -343,6 +357,7 @@ func _toggle_hold_mode() -> void:
     if selection_handler.selection.size() > 0:
         mode_label = selection_handler.selection[0].hold_mode
     Logger.log_event("Hold mode set to %s" % mode_label)
+    _record_timeline_event("Hold mode: %s" % mode_label, {"unit_count": selection_handler.selection.size()})
 
 func _handle_control_group_input(_event: InputEvent) -> void:
     return
@@ -416,10 +431,17 @@ func _init_match_stats() -> void:
         "objective_winner": "None",
         "end_reason": "In Progress",
         "survivors_player": 0,
-        "survivors_enemy": 0
+        "survivors_enemy": 0,
+        "suppression_peak_player": 0.0,
+        "suppression_peak_enemy": 0.0,
+        "suppression_heatmap": {},
+        "flank_events": [],
+        "timeline": []
     }
     hold_timer_player = 0.0
     hold_timer_enemy = 0.0
+    suppression_heatmap = {}
+    match_time = 0.0
 
 func _update_objective(delta: float) -> void:
     if match_over:
@@ -471,6 +493,10 @@ func record_kill(cover_state: String, source: Node) -> void:
         match_stats["kills_in_open"] += 1
     else:
         match_stats["kills_in_cover"] += 1
+    _record_timeline_event("Kill", {
+        "source_id": source.id if source != null else -1,
+        "cover": cover_state
+    })
 
 func award_xp(unit: Node, amount: int) -> void:
     if unit == null:
@@ -482,11 +508,33 @@ func award_xp(unit: Node, amount: int) -> void:
         unit_roster[unit.id]["xp"] = unit.xp
         unit_roster[unit.id]["rank"] = unit.rank
 
+func record_flank_event(attacker: Node, target: Node) -> void:
+    if attacker == null or target == null:
+        return
+    if not ("last_move_dir" in target):
+        return
+    var move_dir: Vector2 = target.last_move_dir
+    if move_dir.length() < 0.1:
+        return
+    var attack_dir: Vector2 = (attacker.global_position - target.global_position).normalized()
+    var flank_score: float = abs(move_dir.dot(attack_dir))
+    if flank_score > 0.35:
+        return
+    var entry: Dictionary = {
+        "time": match_time,
+        "attacker_id": attacker.id,
+        "target_id": target.id
+    }
+    match_stats["flank_events"].append(entry)
+    _record_timeline_event("Flank kill", entry)
+    Logger.log_telemetry("flank_event", entry)
+
 func _finalize_match_summary() -> void:
     match_stats["survivors_player"] = get_tree().get_nodes_in_group("player_units").size()
     match_stats["survivors_enemy"] = get_tree().get_nodes_in_group("enemy_units").size()
     if match_stats.get("end_reason", "") == "In Progress":
         match_stats["end_reason"] = "Unknown"
+    match_stats["suppression_heatmap"] = suppression_heatmap
     get_tree().set_meta("match_summary", match_stats)
     Logger.dump_to_file("user://match_log.txt")
 
@@ -532,6 +580,37 @@ func _sync_roster_from_units() -> void:
         else:
             unit_roster[unit.id]["xp"] = unit.xp
             unit_roster[unit.id]["rank"] = unit.rank
+
+func _update_suppression_stats() -> void:
+    var peak_player: float = 0.0
+    var peak_enemy: float = 0.0
+    var cell_size: float = 200.0
+    for group_name in ["player_units", "enemy_units"]:
+        for unit in get_tree().get_nodes_in_group(group_name):
+            if not ("suppression" in unit):
+                continue
+            var level: float = unit.suppression
+            if group_name == "player_units":
+                peak_player = max(peak_player, level)
+            else:
+                peak_enemy = max(peak_enemy, level)
+            if level <= 0.5:
+                continue
+            var cell_x: int = int(floor(unit.global_position.x / cell_size))
+            var cell_y: int = int(floor(unit.global_position.y / cell_size))
+            var key: String = "%d,%d" % [cell_x, cell_y]
+            var stored: float = suppression_heatmap.get(key, 0.0)
+            suppression_heatmap[key] = max(stored, level)
+    match_stats["suppression_peak_player"] = max(match_stats.get("suppression_peak_player", 0.0), peak_player)
+    match_stats["suppression_peak_enemy"] = max(match_stats.get("suppression_peak_enemy", 0.0), peak_enemy)
+
+func _record_timeline_event(label: String, payload: Dictionary = {}) -> void:
+    var entry: Dictionary = {
+        "time": match_time,
+        "label": label,
+        "data": payload
+    }
+    match_stats["timeline"].append(entry)
 
 func _count_units_in_radius(group_name: String, origin: Vector2, radius: float) -> int:
     var count: int = 0
