@@ -48,6 +48,11 @@ func _tick(delta: float) -> void:
             if current_tactic != "idle":
                 cooldowns[current_tactic] = TACTIC_DURATIONS.get(current_tactic, 6.0)
             _log("Fireteam %d tactic -> %s" % [fireteam_id, current_tactic])
+            Logger.log_telemetry("ai_tactic_selected", {
+                "fireteam_id": fireteam_id,
+                "tactic": current_tactic,
+                "unit_count": units.size()
+            })
             _act(current_tactic)
         return
     if not _should_update():
@@ -57,6 +62,14 @@ func _tick(delta: float) -> void:
     if _should_switch(next_tactic, sense):
         pending_tactic = next_tactic
         comms_timer = 0.0
+        Logger.log_telemetry("ai_tactic_pending", {
+            "fireteam_id": fireteam_id,
+            "tactic": next_tactic,
+            "reason": "switch",
+            "avg_fear": sense.get("avg_fear", 0.0),
+            "avg_hp": sense.get("avg_hp", 1.0),
+            "avg_suppression": sense.get("avg_suppression", 0.0)
+        })
     else:
         _act(current_tactic)
 

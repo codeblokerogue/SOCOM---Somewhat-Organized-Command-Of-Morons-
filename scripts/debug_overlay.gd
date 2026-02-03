@@ -77,6 +77,14 @@ func _draw() -> void:
                 var has_los: bool = game.is_line_of_sight(unit.global_position, mouse_world, null)
                 var line_col: Color = Color(0.2, 1.0, 0.2, 0.7) if has_los else Color(1.0, 0.2, 0.2, 0.7)
                 draw_line(start_screen, mouse_screen, line_col, 1.0)
+    if show_nav_paths:
+        _draw_nav_paths(canvas_xform)
+    if show_cover_edges:
+        _draw_cover_edges(canvas_xform)
+    if show_suppression_heat:
+        _draw_suppression_heat(canvas_xform)
+    if show_ai_tactics:
+        _draw_ai_tactics(canvas_xform)
     for unit in get_tree().get_nodes_in_group("player_units"):
         for entry in unit.last_known_positions.values():
             var age: float = entry["age"]
@@ -85,3 +93,67 @@ func _draw() -> void:
             var alpha: float = clamp(1.0 - (age / fade_time), 0.0, 1.0)
             var screen_pos: Vector2 = canvas_xform * pos
             draw_circle(screen_pos, 4.0, Color(1.0, 1.0, 1.0, alpha))
+
+func _draw_nav_paths(canvas_xform: Transform2D) -> void:
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        var points: Array = []
+        points.append(unit.global_position)
+        if "waypoints" in unit and unit.waypoints.size() > 0:
+            for wp in unit.waypoints:
+                points.append(wp)
+        elif "target_position" in unit:
+            points.append(unit.target_position)
+        if points.size() < 2:
+            continue
+        for i in range(points.size() - 1):
+            var start_screen: Vector2 = canvas_xform * points[i]
+            var end_screen: Vector2 = canvas_xform * points[i + 1]
+            draw_line(start_screen, end_screen, Color(0.4, 0.8, 1.0, 0.6), 1.0)
+
+func _draw_cover_edges(canvas_xform: Transform2D) -> void:
+    for cover in get_tree().get_nodes_in_group("cover"):
+        if not ("size" in cover):
+            continue
+        var size: Vector2 = cover.size
+        var top_left: Vector2 = canvas_xform * (cover.global_position - size * 0.5)
+        var bottom_right: Vector2 = canvas_xform * (cover.global_position + size * 0.5)
+        var rect := Rect2(top_left, bottom_right - top_left)
+        var colour := Color(0.3, 0.9, 0.6, 0.6)
+        if "cover_type" in cover and cover.cover_type == "heavy":
+            colour = Color(0.3, 0.5, 1.0, 0.6)
+        draw_rect(rect, colour, false, 2.0)
+
+func _draw_suppression_heat(canvas_xform: Transform2D) -> void:
+    for group_name in ["player_units", "enemy_units"]:
+        for unit in get_tree().get_nodes_in_group(group_name):
+            if not ("suppression" in unit):
+                continue
+            var level: float = clamp(unit.suppression / 100.0, 0.0, 1.0)
+            if level <= 0.01:
+                continue
+            var radius: float = 10.0 + level * 16.0
+            var alpha: float = 0.15 + level * 0.5
+            var screen_pos: Vector2 = canvas_xform * unit.global_position
+            draw_circle(screen_pos, radius, Color(1.0, 0.3, 0.2, alpha))
+
+func _draw_ai_tactics(canvas_xform: Transform2D) -> void:
+    var font: Font = get_theme_default_font()
+    var font_size: int = get_theme_default_font_size()
+    for team in get_tree().get_nodes_in_group("ai_fireteams"):
+        if not ("units" in team):
+            continue
+        var units: Array = team.units
+        if units.is_empty():
+            continue
+        var sum: Vector2 = Vector2.ZERO
+        var count: int = 0
+        for unit in units:
+            if is_instance_valid(unit):
+                sum += unit.global_position
+                count += 1
+        if count == 0:
+            continue
+        var centroid: Vector2 = sum / float(count)
+        var screen_pos: Vector2 = canvas_xform * centroid
+        var label: String = "AI %d: %s" % [team.fireteam_id, team.current_tactic]
+        draw_string(font, screen_pos, label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(1.0, 0.8, 0.4))

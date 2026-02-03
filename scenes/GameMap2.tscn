@@ -4,6 +4,7 @@
 [ext_resource path="res://scripts/debug_overlay.gd" type="Script" id=3]
 [ext_resource path="res://scenes/Cover.tscn" type="PackedScene" id=4]
 [ext_resource path="res://scripts/objective_marker.gd" type="Script" id=5]
+[ext_resource path="res://scripts/map_modifiers.gd" type="Script" id=6]
 
 [node name="GameMap2" type="Node2D"]
 script = ExtResource(1)

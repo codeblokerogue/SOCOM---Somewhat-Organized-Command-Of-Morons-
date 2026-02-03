@@ -149,6 +149,20 @@ func _attack_logic(delta: float) -> void:
         if randf() <= hit_chance:
             var final_damage: float = damage * cover_data["damage_multiplier"]
             nearest.take_damage(final_damage, self)
+            Logger.log_telemetry("combat_hit", {
+                "attacker_id": id,
+                "target_id": nearest.id,
+                "damage": final_damage,
+                "distance": min_dist,
+                "cover": cover_data.get("type", "none")
+            })
+        else:
+            Logger.log_telemetry("combat_miss", {
+                "attacker_id": id,
+                "target_id": nearest.id,
+                "distance": min_dist,
+                "cover": cover_data.get("type", "none")
+            })
         # Apply suppression to target
         nearest.suppression += _suppression_amount()
         # Log event
@@ -163,6 +177,11 @@ func take_damage(amount: float, source: Node) -> void:
         if game != null:
             game.record_kill(cover_state, source)
             game.award_xp(source, 10)
+        Logger.log_telemetry("combat_kill", {
+            "attacker_id": source.id,
+            "target_id": id,
+            "cover": cover_state
+        })
         _log_event("Unit %d was killed" % id)
         queue_free()
 

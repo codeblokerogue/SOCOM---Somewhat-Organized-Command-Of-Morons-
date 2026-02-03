@@ -20,6 +20,7 @@ var unit_archetypes: Dictionary = {}
 var unit_roster: Dictionary = {}
 var fireteams: Dictionary = {}
 var match_stats: Dictionary = {}
+var control_groups: Dictionary = {}
 var hold_timer_player: float = 0.0
 var hold_timer_enemy: float = 0.0
 var match_over: bool = false
@@ -47,6 +48,7 @@ func _ready() -> void:
     unit_archetypes = _load_unit_archetypes()
     _load_campaign_state()
     _spawn_match_units()
+    _apply_map_modifiers()
     _setup_fireteam_ai()
     _init_match_stats()
     debug_overlay.set_state("Game")
@@ -238,6 +240,15 @@ func _spawn_match_units() -> void:
     var enemy_count: int = max(total_target - player_count, 0)
     spawn_player_units(player_count)
     spawn_enemy_units(enemy_count)
+
+func _apply_map_modifiers() -> void:
+    var modifier_node: Node = get_node_or_null("MapModifiers")
+    if modifier_node == null:
+        return
+    if not modifier_node.has_method("apply_to_unit"):
+        return
+    for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
+        modifier_node.apply_to_unit(unit)
 
 func _load_unit_archetypes() -> Dictionary:
     var path: String = "res://data/units.json"
