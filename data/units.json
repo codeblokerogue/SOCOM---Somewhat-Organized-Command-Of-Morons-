@@ -3,6 +3,10 @@
     "hp": 100,
     "speed": 120,
     "accuracy": 0.8,
+    "weapon_range": 360,
+    "rate_of_fire": 0.55,
+    "damage": 10,
+    "suppression_power": 10,
     "suppression_resistance": 1.0,
     "role_tag": "rifleman",
     "cost_tag": "basic"
@@ -11,6 +15,10 @@
     "hp": 80,
     "speed": 160,
     "accuracy": 0.7,
+    "weapon_range": 300,
+    "rate_of_fire": 0.45,
+    "damage": 8,
+    "suppression_power": 8,
     "suppression_resistance": 0.8,
     "role_tag": "scout",
     "cost_tag": "light"
@@ -19,6 +27,10 @@
     "hp": 120,
     "speed": 100,
     "accuracy": 0.75,
+    "weapon_range": 420,
+    "rate_of_fire": 0.35,
+    "damage": 12,
+    "suppression_power": 18,
     "suppression_resistance": 1.2,
     "role_tag": "support",
     "cost_tag": "heavy"
