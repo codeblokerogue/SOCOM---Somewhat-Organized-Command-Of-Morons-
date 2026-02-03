@@ -6,9 +6,10 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ### Setup & Infrastructure
 
-* [ ] **Project scaffolding:** initialise a Godot 4 project in this repository. Create folders for `scenes/`, `scripts/`, `ai/`, `data/`, `maps/`, `ui/` and `overlays/`. Add `project.godot` with project name, version, default window size and main scene (`MainMenu.tscn`).
-* [ ] **README:** document installation, run instructions, controls and debug overlay toggles. Mention export steps and how to contribute.
-* [ ] **Debug logging & overlay:** implement a simple logging system that writes events to both the console and an on-screen overlay. The overlay should be toggled by a function key and display the latest 20 events.
+* [x] **Project scaffolding:** initialise a Godot 4 project in this repository. Create folders for `scenes/`, `scripts/`, `ai/`, `data/`, `maps/`, `ui/` and `overlays/`. Add `project.godot` with project name, version, default window size and main scene (`MainMenu.tscn`).
+* [x] **README:** document installation, run instructions, controls and debug overlay toggles. Mention export steps and how to contribute.
+* [x] **Debug logging & overlay:** implement a simple logging system that writes events to both the console and an on-screen overlay. The overlay should be toggled by a function key and display the latest 20 events.
+* **Milestone 1 validation:** `./.tools/godot/godot --headless --quit --path .`
 
 ### Core Loop & Flow
 

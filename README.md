@@ -11,9 +11,23 @@ This repository is the starting point for a top‑down real‑time tactics game 
 
 ## Setup
 
-1. **Install Godot 4.5 or later** – download the official editor from [godotengine.org](https://godotengine.org/).  The project uses 2D features exclusively and should run on any desktop platform.
-2. **Open the project** – in the editor choose “Open Project”, browse to the `tactical_rts` folder and select `project.godot`.
-3. **Run the game** – press the *Play* button.  The main menu appears; click **Start** to load a test match.  Four player units and four AI units will spawn on a blank map.  Use the controls below to play.
+1. **Install Godot 4.2+** – download the official editor from [godotengine.org](https://godotengine.org/) or use the repo-local installer below. The project uses 2D features exclusively and should run on any desktop platform.
+2. **Open the project** – in the editor choose “Open Project”, browse to this repository and select `project.godot`.
+
+## How to Run
+
+1. **Install the repo-local Godot binary**:
+   ```bash
+   ./scripts/install_godot.sh
+   ```
+2. **Run the game (GUI)** – from the repo root:
+   ```bash
+   ./.tools/godot/godot --path .
+   ```
+3. **Optional local convenience** (if you already have it installed):
+   ```bash
+   godot4 --path .
+   ```
 
 ### Controls (MVP)
 
@@ -28,6 +42,21 @@ This repository is the starting point for a top‑down real‑time tactics game 
 ### Debugging and Logging
 
 From the very first milestone the game logs key events (unit spawn, orders issued, kills).  Press **F1** in‑game to toggle the on‑screen event log.  Debug overlays for navigation paths, cover edges, line‑of‑sight and suppression heat maps will be implemented incrementally; their toggles are stubbed in the code.
+
+## Testing
+
+1. Install the repo-local Godot binary:
+   ```bash
+   ./scripts/install_godot.sh
+   ```
+2. Run a headless smoke check:
+   ```bash
+   ./.tools/godot/godot --headless --quit --path .
+   ```
+3. Optional local convenience:
+   ```bash
+   godot4 --headless --quit --path .
+   ```
 
 ## Running exports
 

@@ -13,6 +13,9 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
+[autoload]
+Logger="*res://scripts/logger.gd"
+
 [input]
 # Define custom actions used in scripts
 ui_select={"deadzone":0.5,"events":[{"button_index":1,"device":-1,"event_type":"mouse_button"}]}

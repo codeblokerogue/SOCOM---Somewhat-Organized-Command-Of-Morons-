@@ -15,7 +15,7 @@ func _ready() -> void:
     spawn_enemy_units(4)
     # Log events
     for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
-        get_tree().call_group("debug_overlay", "log_event", "Spawned Unit %d (role %s)" % [unit.id, unit.role])
+        Logger.log_event("Spawned Unit %d (role %s)" % [unit.id, unit.role])
 
 func _process(delta: float) -> void:
     _handle_camera_movement(delta)
@@ -40,12 +40,12 @@ func _unhandled_input(event: InputEvent) -> void:
             order_name = "Attack‑move"
         elif hold:
             order_name = "Hold"
-        get_tree().call_group("debug_overlay", "log_event", "%s order issued to %d units" % [order_name, selection_handler.selection.size()])
+        Logger.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
     elif event is InputEventKey and event.pressed:
         if event.scancode == KEY_SPACE:
             # Pause/unpause
             get_tree().paused = not get_tree().paused
-            get_tree().call_group("debug_overlay", "log_event", "Game paused" if get_tree().paused else "Game resumed")
+            Logger.log_event("Game paused" if get_tree().paused else "Game resumed")
         elif event.scancode == KEY_F:
             # Cycle formation spacing
             current_formation_index = (current_formation_index + 1) % formation_modes.size()
@@ -64,7 +64,7 @@ func _unhandled_input(event: InputEvent) -> void:
                 # assign radial offset around target to spread units
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
-            get_tree().call_group("debug_overlay", "log_event", "Formation mode set to %s" % mode)
+            Logger.log_event("Formation mode set to %s" % mode)
 
 func spawn_player_units(count: int) -> void:
     var scene := load("res://scenes/Unit.tscn")
