@@ -1,0 +1,20 @@
+; Engine configuration file format version 4
+; This file was generated as part of the MVP vertical slice for the RTS tactical shooter.
+; It defines the basic project settings and the entry scene.
+
+[application]
+config/name="Tactical RTS"
+config/version="0.1"
+run/main_scene="res://scenes/MainMenu.tscn"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[input]
+# Define custom actions used in scripts
+ui_select={"deadzone":0.5,"events":[{"button_index":1,"device":-1,"event_type":"mouse_button"}]}
+ui_cancel={"deadzone":0.5,"events":[{"button_index":2,"device":-1,"event_type":"mouse_button"}]}
+pause={"deadzone":0.5,"events":[{"scancode":32,"device":-1,"event_type":"key"}]}

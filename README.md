@@ -1,4 +1,3 @@
-SOCOM: Somewhat Organized Command Of Morons​ 
 # Top‑Down RTS Tactical Shooter (MVP Vertical Slice)
 
 This repository is the starting point for a top‑down real‑time tactics game inspired by *War of Dots* and *Running with Rifles*.  It follows the design outlined in **PRD v1.0** and delivers a playable MVP vertical slice using **Godot 4** as the engine.  The focus is on giving orders rather than twitch reflexes: positioning, timing, flanking and suppression win fights.
@@ -37,4 +36,3 @@ To make a release build, open **Project → Export** in the Godot editor and cr
 ## Contributing
 
 The game is built iteratively.  Please read `tasks.md` to see the work ahead.  Focus on completing the MVP vertical slice before tackling v0.9 or v1 features.  Avoid scope creep; each feature should be runnable and stable before moving on.  Use the debug overlays to verify behaviour and collect telemetry – it will be invaluable for tuning AI and balance.
-

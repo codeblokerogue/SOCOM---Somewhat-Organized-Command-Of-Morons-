@@ -1,0 +1,26 @@
+{
+  "Rifle": {
+    "hp": 100,
+    "speed": 120,
+    "accuracy": 0.8,
+    "suppression_resistance": 1.0,
+    "role_tag": "rifleman",
+    "cost_tag": "basic"
+  },
+  "Scout": {
+    "hp": 80,
+    "speed": 160,
+    "accuracy": 0.7,
+    "suppression_resistance": 0.8,
+    "role_tag": "scout",
+    "cost_tag": "light"
+  },
+  "Support": {
+    "hp": 120,
+    "speed": 100,
+    "accuracy": 0.75,
+    "suppression_resistance": 1.2,
+    "role_tag": "support",
+    "cost_tag": "heavy"
+  }
+}
