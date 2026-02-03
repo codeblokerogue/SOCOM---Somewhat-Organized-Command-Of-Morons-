@@ -1,67 +1,69 @@
-# Top‑Down RTS Tactical Shooter (MVP Vertical Slice)
+# Top‑Down RTS Tactical Shooter (MVP Prototype)
 
-This repository is the starting point for a top‑down real‑time tactics game inspired by *War of Dots* and *Running with Rifles*.  It follows the design outlined in **PRD v1.0** and delivers a playable MVP vertical slice using **Godot 4** as the engine.  The focus is on giving orders rather than twitch reflexes: positioning, timing, flanking and suppression win fights.
+**Current version:** v0.1 (MVP prototype).  
+**Status:** v0.9 and v1 are **not** complete yet; the project focuses on the MVP vertical slice.
 
-## What’s included
+This repository follows **PRD v1.0** and delivers a playable top‑down tactics prototype in **Godot 4**. The focus is on real‑time orders (selection, movement, attack‑move, hold, spacing), cover and suppression, and early AI fireteam behaviors.
 
-* A Godot 4 project scaffold with scenes (`MainMenu`, `Game`, `AfterAction`, `Unit`) and scripts organised in `scripts/`, `ai/`, `data/` and `overlays/` folders.
-* A first implementation of selection, movement and simple combat so you can already spawn units, select them with a drag‑box and issue move or attack‑move orders.
-* A debug overlay that logs events and shows suppression bars above units.  More overlays (nav paths, LoS rays, cover heat, AI tactics) can be toggled via function keys as they are implemented.
-* A `tasks.md` file detailing milestones and tasks derived directly from the PRD.
+## What’s playable now
+
+- Main menu flow: Menu → Game → AfterAction → Menu.
+- Drag‑box selection (shift‑add) and double‑click select by role.
+- Move, attack‑move, hold modes, and formation spacing.
+- Cover checks, line‑of‑sight, suppression, and hitscan combat.
+- Fireteam AI with base‑of‑fire, flank, screen, peel‑back, and reserve tactics.
+- Basic roster screen showing persisted unit XP/rank.
 
 ## Setup
 
-1. **Install Godot 4.2+** – download the official editor from [godotengine.org](https://godotengine.org/) or use the repo-local installer below. The project uses 2D features exclusively and should run on any desktop platform.
-2. **Open the project** – in the editor choose “Open Project”, browse to this repository and select `project.godot`.
+1. **Install Godot 4.2+**  
+   Download the official editor for your OS from [godotengine.org](https://godotengine.org/).
+2. **Open the project**  
+   In the editor choose **Open Project**, browse to this repository, and select `project.godot`.
 
-## How to Run
+## Run Instructions
 
-1. **Install the repo-local Godot binary**:
-   ```bash
-   ./scripts/install_godot.sh
-   ```
-2. **Run the game (GUI)** – from the repo root:
-   ```bash
-   ./.tools/godot/godot --path .
-   ```
-3. **Optional local convenience** (if you already have it installed):
-   ```bash
-   godot4 --path .
-   ```
+### Sandbox/CI (headless)
 
-### Controls (MVP)
+```bash
+./scripts/install_godot.sh
+./.tools/godot/godot --headless --quit --path .
+```
 
-* **Left mouse drag** – draw a selection box.  All player units inside are selected.  Hold **Shift** while dragging to add to the existing selection.
-* **Right mouse click** – issue a move order to selected units.  With an **A** key held, it becomes an *attack‑move* order.  Hold **Shift** when issuing a move to queue a second waypoint.
-* **H** – toggle *hold* order.  Selected units will stop and hold position, returning fire only.
-* **F** – cycle through formation spacing (tight, normal, loose).  Not yet implemented in the MVP but hooked for future development.
-* **Space** – pause/unpause the game (real‑time with pause).
-* **W/A/S/D or mouse edges** – move the camera.  **Mouse wheel** zooms in/out.
-* **F1** – toggle the debug event log.  Additional overlays will be bound to F‑keys as they are added.
+### Local GUI (Windows/macOS/Linux)
 
-### Debugging and Logging
+1. Launch the Godot 4 editor you downloaded.
+2. Open the project by selecting `project.godot`.
+3. Press **Play** (F5) to run the game.
 
-From the very first milestone the game logs key events (unit spawn, orders issued, kills).  Press **F1** in‑game to toggle the on‑screen event log.  Debug overlays for navigation paths, cover edges, line‑of‑sight and suppression heat maps will be implemented incrementally; their toggles are stubbed in the code.
+> Note: the repo‑local installer (`./scripts/install_godot.sh`) is for Linux CI/sandbox usage. Use the official editor for Windows/macOS.
 
-## Testing
+## Controls
 
-1. Install the repo-local Godot binary:
-   ```bash
-   ./scripts/install_godot.sh
-   ```
-2. Run a headless smoke check:
-   ```bash
-   ./.tools/godot/godot --headless --quit --path .
-   ```
-3. Optional local convenience:
-   ```bash
-   godot4 --headless --quit --path .
-   ```
+- **Left mouse drag** — draw a selection box. **Shift** adds to selection.
+- **Double‑click** — select all units of the same role.
+- **Right mouse click** — issue a move order. **Shift‑right click** queues a second waypoint.
+- **Hold A + right click** — attack‑move order.
+- **H** — cycle hold mode (off → defensive → aggressive).
+- **F** — cycle formation spacing (tight/normal/loose).
+- **Space** — pause/unpause.
+- **W/A/S/D or mouse edges** — pan the camera. **Mouse wheel** zooms.
+- **F1** — toggle debug event log. **F2‑F6** toggle overlay stubs (nav paths/cover/LoS/suppression/tactics).
 
-## Running exports
+## Playtesting
 
-To make a release build, open **Project → Export** in the Godot editor and create an export preset for your platform (e.g. Windows, Linux or macOS).  Click **Add…**, select a template and press **Export Project**.  Godot produces a portable executable in the chosen directory.
+See [docs/PLAYTEST.md](docs/PLAYTEST.md) for manual checklists.
+
+Headless autoplay playtest:
+
+```bash
+./scripts/playtest_headless.sh
+```
+
+## Export Instructions
+
+Open **Project → Export** in the Godot editor, add a preset for your platform (Windows, Linux, or macOS), then click **Export Project**. Godot will generate the executable in the selected directory.
 
 ## Contributing
 
-The game is built iteratively.  Please read `tasks.md` to see the work ahead.  Focus on completing the MVP vertical slice before tackling v0.9 or v1 features.  Avoid scope creep; each feature should be runnable and stable before moving on.  Use the debug overlays to verify behaviour and collect telemetry – it will be invaluable for tuning AI and balance.
+Work in small, playable increments. Avoid scope creep and prioritize completing the MVP vertical slice. Use `tasks.md` as the milestone source of truth.

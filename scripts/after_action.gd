@@ -12,6 +12,7 @@ func _ready() -> void:
     return_button.pressed.connect(_on_return_pressed)
     debug_overlay.set_state("AfterAction")
     _populate_summary()
+    _maybe_finish_playtest()
 
 func _on_return_pressed() -> void:
     Logger.log_event("State transition: AfterAction -> Menu")
@@ -20,7 +21,7 @@ func _on_return_pressed() -> void:
 func _populate_summary() -> void:
     if summary_text == null:
         return
-    var summary := {}
+    var summary: Dictionary = {}
     if get_tree().has_meta("match_summary"):
         summary = get_tree().get_meta("match_summary")
     var lines: Array = []
@@ -33,3 +34,18 @@ func _populate_summary() -> void:
     lines.append("XP awarded: %d" % summary.get("xp_awarded", 0))
     lines.append("Survivors (player/enemy): %d / %d" % [summary.get("survivors_player", 0), summary.get("survivors_enemy", 0)])
     summary_text.text = "\\n".join(lines)
+
+func _maybe_finish_playtest() -> void:
+    if not _is_playtest_active():
+        return
+    var exit_code: int = 0
+    if get_tree().has_meta("playtest_failed") and bool(get_tree().get_meta("playtest_failed")):
+        exit_code = 1
+    Logger.log_event("Playtest completed; exiting with code %d" % exit_code)
+    call_deferred("_quit_playtest", exit_code)
+
+func _quit_playtest(exit_code: int) -> void:
+    get_tree().quit(exit_code)
+
+func _is_playtest_active() -> bool:
+    return get_tree().has_meta("playtest_active") and bool(get_tree().get_meta("playtest_active"))
