@@ -20,6 +20,7 @@ var unit_archetypes: Dictionary = {}
 var unit_roster: Dictionary = {}
 var fireteams: Dictionary = {}
 var match_stats: Dictionary = {}
+var control_groups: Dictionary = {}
 var hold_timer_player: float = 0.0
 var hold_timer_enemy: float = 0.0
 var match_over: bool = false
