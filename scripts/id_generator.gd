@@ -5,7 +5,7 @@ extends Node
 
 class_name IDGenerator
 
-var _next_id: int = 1
+static var _next_id: int = 1
 
 static func next_id() -> int:
     var id := _next_id
