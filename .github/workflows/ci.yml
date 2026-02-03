@@ -1,0 +1,16 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install Godot
+        run: ./scripts/install_godot.sh
+      - name: Headless project check
+        run: ./.tools/godot/godot --headless --quit --path .
