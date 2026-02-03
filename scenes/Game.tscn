@@ -30,3 +30,18 @@ anchor_left = 0.85
 anchor_top = 0.02
 anchor_right = 0.98
 anchor_bottom = 0.08
+
+[node name="SelectionPanel" type="Panel" parent="Game/HUD"]
+anchor_left = 0.02
+anchor_top = 0.02
+anchor_right = 0.32
+anchor_bottom = 0.12
+
+[node name="SelectionLabel" type="Label" parent="Game/HUD/SelectionPanel"]
+text = "Selection: 0"
+anchor_left = 0.02
+anchor_top = 0.1
+anchor_right = 0.98
+anchor_bottom = 0.9
+horizontal_alignment = 0
+vertical_alignment = 0

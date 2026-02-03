@@ -7,6 +7,9 @@ extends Node2D
 @onready var camera: Camera2D = $Camera2D
 @onready var debug_overlay = $DebugOverlay
 @onready var end_button = $HUD/EndButton
+@onready var selection_label: Label = $HUD/SelectionPanel/SelectionLabel
+
+var last_selection_summary: String = ""
 
 var formation_modes: Array = ["tight", "normal", "loose"]
 var current_formation_index: int = 1  # start at normal
@@ -36,6 +39,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     _handle_camera_movement(delta)
+    _update_selection_panel()
 
 func _unhandled_input(event: InputEvent) -> void:
     # Right‑click issues orders
@@ -226,3 +230,23 @@ func _register_unit(unit: Unit) -> void:
         "xp": unit.xp,
         "rank": unit.rank
     }
+
+func _update_selection_panel() -> void:
+    if selection_label == null:
+        return
+    var selected: Array = selection_handler.selection
+    var role_counts: Dictionary = {}
+    for unit in selected:
+        var role_name: String = unit.role
+        role_counts[role_name] = role_counts.get(role_name, 0) + 1
+    var parts: Array = []
+    var roles := role_counts.keys()
+    roles.sort()
+    for role in roles:
+        parts.append("%s x%d" % [role, role_counts[role]])
+    var summary := "Selection: %d" % selected.size()
+    if parts.size() > 0:
+        summary += " (" + ", ".join(parts) + ")"
+    if summary != last_selection_summary:
+        selection_label.text = summary
+        last_selection_summary = summary

@@ -4,9 +4,14 @@ extends Node2D
 # Handles RTS‑style selection via drag boxes.  Maintains the current selection and updates unit selection state.
 
 var selecting: bool = false
-var start_pos: Vector2
+var start_screen_pos: Vector2
+var start_world_pos: Vector2
+var current_world_pos: Vector2
 var current_rect: Rect2 = Rect2()
 var selection: Array = []
+
+const DRAG_THRESHOLD: float = 6.0
+const CLICK_RADIUS: float = 12.0
 
 func _input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
@@ -14,34 +19,26 @@ func _input(event: InputEvent) -> void:
             if event.pressed:
                 # Begin drag selection
                 selecting = true
-                start_pos = event.position
-                current_rect = Rect2(start_pos, Vector2.ZERO)
+                start_screen_pos = event.position
+                start_world_pos = _screen_to_world(event.position)
+                current_world_pos = start_world_pos
+                current_rect = Rect2(start_world_pos, Vector2.ZERO)
             else:
                 # Finish drag selection
                 selecting = false
-                var rect := current_rect.abs()
-                var new_selection: Array = []
-                for unit in get_tree().get_nodes_in_group("player_units"):
-                    if rect.has_point(unit.get_global_position()):
-                        new_selection.append(unit)
-                if Input.is_key_pressed(KEY_SHIFT):
-                    # Add to existing selection
-                    for u in new_selection:
-                        if not selection.has(u):
-                            selection.append(u)
+                var is_shift := Input.is_key_pressed(KEY_SHIFT)
+                var drag_distance := start_screen_pos.distance_to(event.position)
+                if drag_distance <= DRAG_THRESHOLD:
+                    _handle_click_selection(_screen_to_world(event.position), is_shift)
                 else:
-                    # Clear previous selection
-                    for u in selection:
-                        u.selected = false
-                    selection = new_selection
-                # Update unit selection state
-                for u in selection:
-                    u.selected = true
+                    _handle_box_selection(is_shift)
+                queue_redraw()
         elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
             # Right‑click orders are handled in Game.gd
             pass
     elif event is InputEventMouseMotion and selecting:
-        current_rect.size = event.position - start_pos
+        current_world_pos = _screen_to_world(event.position)
+        current_rect = Rect2(start_world_pos, current_world_pos - start_world_pos)
         # Update drawing
         queue_redraw()
 
@@ -52,3 +49,50 @@ func _draw() -> void:
         var border_col := Color(0.1, 0.7, 1.0, 0.8)
         draw_rect(rect, fill_col, true)
         draw_rect(rect, border_col, false, 1.0)
+
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+    var camera := get_viewport().get_camera_2d()
+    if camera:
+        return camera.unproject_position(screen_pos)
+    return screen_pos
+
+func _handle_click_selection(world_pos: Vector2, add_to_selection: bool) -> void:
+    var selected_unit := _get_unit_at_point(world_pos)
+    if not add_to_selection:
+        _clear_selection()
+    if selected_unit != null:
+        if not selection.has(selected_unit):
+            selection.append(selected_unit)
+        selected_unit.selected = true
+
+func _handle_box_selection(add_to_selection: bool) -> void:
+    var rect := current_rect.abs()
+    var new_selection: Array = []
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        if rect.has_point(unit.get_global_position()):
+            new_selection.append(unit)
+    if add_to_selection:
+        for u in new_selection:
+            if not selection.has(u):
+                selection.append(u)
+                u.selected = true
+    else:
+        _clear_selection()
+        selection = new_selection
+        for u in selection:
+            u.selected = true
+
+func _clear_selection() -> void:
+    for u in selection:
+        u.selected = false
+    selection.clear()
+
+func _get_unit_at_point(world_pos: Vector2) -> Node2D:
+    var closest: Node2D = null
+    var closest_dist := CLICK_RADIUS
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        var dist := unit.get_global_position().distance_to(world_pos)
+        if dist <= closest_dist:
+            closest = unit
+            closest_dist = dist
+    return closest
