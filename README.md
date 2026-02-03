@@ -42,6 +42,10 @@ The Codex sandbox uses a local Godot binary committed outside of git, not a syst
 
 From the very first milestone the game logs key events (unit spawn, orders issued, kills).  Press **F1** in‑game to toggle the on‑screen event log.  Debug overlays for navigation paths, cover edges, line‑of‑sight and suppression heat maps will be implemented incrementally; their toggles are stubbed in the code.
 
+## CI
+
+The GitHub Actions workflow at `.github/workflows/ci.yml` installs the pinned Godot build and runs the project headless to verify the repository is runnable.  It executes `./scripts/install_godot.sh` followed by `./.tools/godot/godot --headless --quit --path .`.
+
 ## Running exports
 
 To make a release build, open **Project → Export** in the Godot editor and create an export preset for your platform (e.g. Windows, Linux or macOS).  Click **Add…**, select a template and press **Export Project**.  Godot produces a portable executable in the chosen directory.
