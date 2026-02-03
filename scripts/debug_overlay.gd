@@ -68,23 +68,8 @@ func _draw() -> void:
     var cam := viewport.get_camera_2d()
     if cam == null:
         return
-    if show_cover_edges:
-        for cover in get_tree().get_nodes_in_group("cover"):
-            var radius: float = cover.cover_radius if "cover_radius" in cover else 30.0
-            var screen_pos: Vector2 = cam.to_screen(cover.global_position)
-            draw_circle(screen_pos, radius, Color(0.3, 0.8, 0.9, 0.2))
-    if show_nav_paths:
-        for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
-            var start: Vector2 = cam.to_screen(unit.global_position)
-            var end: Vector2 = cam.to_screen(unit.target_position)
-            draw_line(start, end, Color(0.9, 0.9, 0.2, 0.6), 1.0)
-            if unit.waypoints.size() > 1:
-                for i in range(unit.waypoints.size() - 1):
-                    var a: Vector2 = cam.to_screen(unit.waypoints[i])
-                    var b: Vector2 = cam.to_screen(unit.waypoints[i + 1])
-                    draw_line(a, b, Color(0.9, 0.7, 0.2, 0.5), 1.0)
     var game := get_tree().get_first_node_in_group("game")
-    if game != null and show_los:
+    if game != null:
         var selection_handler := game.get_node_or_null("SelectionHandler")
         if selection_handler != null:
             var mouse_world: Vector2 = game.get_global_mouse_position()
@@ -94,27 +79,11 @@ func _draw() -> void:
                 var has_los: bool = game.is_line_of_sight(unit.global_position, mouse_world, null)
                 var line_col := Color(0.2, 1.0, 0.2, 0.7) if has_los else Color(1.0, 0.2, 0.2, 0.7)
                 draw_line(start_screen, mouse_screen, line_col, 1.0)
-    if show_los:
-        for unit in get_tree().get_nodes_in_group("player_units"):
-            for entry in unit.last_known_positions.values():
-                var age: float = entry["age"]
-                var pos: Vector2 = entry["pos"]
-                var fade_time: float = unit.LAST_KNOWN_FADE if "LAST_KNOWN_FADE" in unit else 6.0
-                var alpha: float = clamp(1.0 - (age / fade_time), 0.0, 1.0)
-                var screen_pos: Vector2 = cam.to_screen(pos)
-                draw_circle(screen_pos, 4.0, Color(1.0, 1.0, 1.0, alpha))
-    if show_suppression_heat:
-        for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
-            var pct: float = clamp(unit.suppression / 100.0, 0.0, 1.0)
-            if pct <= 0.01:
-                continue
-            var screen_pos: Vector2 = cam.to_screen(unit.global_position)
-            draw_circle(screen_pos, 16.0 + pct * 12.0, Color(1.0, 0.2, 0.2, 0.2 + pct * 0.3))
-    if show_ai_tactics:
-        var tactics_y: float = y_offset + 10.0
-        var width: float = viewport.get_visible_rect().size.x
-        for team in get_tree().get_nodes_in_group("ai_fireteams"):
-            if "fireteam_id" in team:
-                var label := "FT %d: %s" % [team.fireteam_id, team.current_tactic]
-                draw_string(font, Vector2(width - 220, tactics_y), label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.6, 0.9, 1.0))
-                tactics_y += line_height
+    for unit in get_tree().get_nodes_in_group("player_units"):
+        for entry in unit.last_known_positions.values():
+            var age: float = entry["age"]
+            var pos: Vector2 = entry["pos"]
+            var fade_time: float = unit.LAST_KNOWN_FADE if "LAST_KNOWN_FADE" in unit else 6.0
+            var alpha: float = clamp(1.0 - (age / fade_time), 0.0, 1.0)
+            var screen_pos: Vector2 = cam.to_screen(pos)
+            draw_circle(screen_pos, 4.0, Color(1.0, 1.0, 1.0, alpha))

@@ -13,8 +13,6 @@ var cooldowns: Dictionary = {}
 var reserve_units: Array = []
 var flank_units: Array = []
 var screen_units: Array = []
-var probe_units: Array = []
-var shift_units: Array = []
 var last_update_time: float = 0.0
 
 const TACTIC_DURATIONS := {
@@ -22,10 +20,7 @@ const TACTIC_DURATIONS := {
     "flank_subgroup": 7.0,
     "screen": 7.0,
     "peel_back": 4.0,
-    "reserve": 8.0,
-    "probe_pull": 6.0,
-    "recon_by_fire": 6.0,
-    "fix_and_shift": 7.0
+    "reserve": 8.0
 }
 
 func _ready() -> void:
@@ -59,11 +54,9 @@ func _tick(delta: float) -> void:
         return
     var sense := _sense()
     var next_tactic := _decide(sense)
-    var switch_reason := _get_switch_reason(next_tactic, sense)
-    if switch_reason != "":
+    if _should_switch(next_tactic, sense):
         pending_tactic = next_tactic
         comms_timer = 0.0
-        Logger.log_event("Fireteam %d switching to %s (%s)" % [fireteam_id, next_tactic, switch_reason])
     else:
         _act(current_tactic)
 
@@ -97,10 +90,7 @@ func _decide(sense: Dictionary) -> String:
         "flank_subgroup": 0.2,
         "screen": 0.15,
         "peel_back": 0.1,
-        "reserve": 0.1,
-        "probe_pull": 0.2,
-        "recon_by_fire": 0.15,
-        "fix_and_shift": 0.2
+        "reserve": 0.1
     }
     if sense["losing"]:
         scores["peel_back"] = 1.2
@@ -109,10 +99,6 @@ func _decide(sense: Dictionary) -> String:
     if unit_count >= 4:
         scores["screen"] += 0.2
         scores["reserve"] += 0.25
-        scores["fix_and_shift"] += 0.25
-    if unit_count >= 3:
-        scores["probe_pull"] += 0.15
-        scores["recon_by_fire"] += 0.1
     for key in scores.keys():
         if cooldowns.has(key) and cooldowns[key] > 0.0:
             scores[key] = -1.0
@@ -125,15 +111,15 @@ func _decide(sense: Dictionary) -> String:
             best = key
     return best
 
-func _get_switch_reason(next_tactic: String, sense: Dictionary) -> String:
+func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
     if current_tactic == "idle":
-        return "idle"
+        return true
     if next_tactic != current_tactic and sense["losing"] and current_tactic != "peel_back":
-        return "losing"
+        return true
     var duration := TACTIC_DURATIONS.get(current_tactic, 6.0)
     if tactic_timer >= duration:
-        return "duration"
-    return ""
+        return true
+    return false
 
 func _act(tactic: String) -> void:
     if tactic == "idle":
@@ -149,12 +135,6 @@ func _act(tactic: String) -> void:
             _act_peel_back()
         "reserve":
             _act_reserve()
-        "probe_pull":
-            _act_probe_pull()
-        "recon_by_fire":
-            _act_recon_by_fire()
-        "fix_and_shift":
-            _act_fix_and_shift()
 
 func _act_base_of_fire() -> void:
     for unit in units:
@@ -212,53 +192,6 @@ func _act_reserve() -> void:
             unit.hold_mode = "defensive"
             unit.attack_move = false
             unit.target_position = unit.global_position + away * 120.0
-        else:
-            unit.hold = true
-            unit.hold_mode = "aggressive"
-            unit.attack_move = true
-
-func _act_probe_pull() -> void:
-    if probe_units.is_empty():
-        probe_units = _pick_subset(units, max(1, int(units.size() / 3.0)))
-    var target := _get_enemy_position()
-    if target == null:
-        return
-    if tactic_timer < 3.0:
-        for unit in probe_units:
-            unit.hold = false
-            unit.hold_mode = "off"
-            unit.attack_move = true
-            unit.issue_move_order(target + _side_direction(target) * 80.0, false)
-    else:
-        for unit in probe_units:
-            var dir := (unit.global_position - target).normalized()
-            unit.attack_move = false
-            unit.issue_move_order(unit.global_position + dir * 140.0, false)
-
-func _act_recon_by_fire() -> void:
-    var target := _get_enemy_position()
-    if target == null:
-        return
-    var offset := _side_direction(target) * 60.0
-    for unit in units:
-        unit.hold = false
-        unit.hold_mode = "aggressive"
-        unit.attack_move = true
-        unit.issue_move_order(target + offset, false)
-
-func _act_fix_and_shift() -> void:
-    if shift_units.is_empty():
-        shift_units = _pick_subset(units, max(1, int(units.size() / 2.0)))
-    var target := _get_enemy_position()
-    if target == null:
-        return
-    var side := _side_direction(target)
-    for unit in units:
-        if shift_units.has(unit):
-            unit.hold = false
-            unit.hold_mode = "off"
-            unit.attack_move = true
-            unit.issue_move_order(target + side * 180.0, false)
         else:
             unit.hold = true
             unit.hold_mode = "aggressive"
