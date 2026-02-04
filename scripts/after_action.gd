@@ -15,7 +15,7 @@ func _ready() -> void:
     _maybe_finish_playtest()
 
 func _on_return_pressed() -> void:
-    GameLog.log_event("State transition: AfterAction -> Menu")
+    SOCOMLog.log_event("State transition: AfterAction -> Menu")
     get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _populate_summary() -> void:
@@ -70,7 +70,7 @@ func _maybe_finish_playtest() -> void:
     var exit_code: int = 0
     if get_tree().has_meta("playtest_failed") and bool(get_tree().get_meta("playtest_failed")):
         exit_code = 1
-    GameLog.log_event("Playtest completed; exiting with code %d" % exit_code)
+    SOCOMLog.log_event("Playtest completed; exiting with code %d" % exit_code)
     call_deferred("_quit_playtest", exit_code)
 
 func _quit_playtest(exit_code: int) -> void:

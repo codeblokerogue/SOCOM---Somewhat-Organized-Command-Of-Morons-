@@ -171,7 +171,7 @@ func _maybe_call_for_help(delta: float) -> void:
     if reason == "":
         return
     help_call_cooldown = 6.0
-    GameLog.log_telemetry("ai_help_request", {
+    SOCOMLog.log_telemetry("ai_help_request", {
         "unit_id": id,
         "fireteam_id": fireteam_id,
         "reason": reason,
