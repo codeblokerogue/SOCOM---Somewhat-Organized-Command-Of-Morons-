@@ -17,21 +17,20 @@ This audit reviews **only** tasks up to and including **v0.9** in `tasks.md`.
 
 ### 2) Self-preservation
 - **Task name:** **Self-preservation:** track fear, confidence and exposure per unit. Fear increases with incoming fire, nearby casualties, low HP and lack of cover; it decreases with good cover, allies nearby, a nearby leader and winning exchanges. Fear influences micro-behaviour (e.g. shorter peeks, hugging cover, refusing to cross open ground). High fear triggers retreats and calls for help.
-- **Status:** PARTIAL
+- **Status:** RESOLVED
 - **Expected behavior:** Fear/confidence/exposure must influence micro behaviors (peeking, hugging cover, refusing open ground), and high fear should trigger retreats **and calls for help**.
-- **What I found instead:** Fear/confidence/exposure are tracked and can trigger retreat/defensive hold, but there is no call-for-help logic or micro behaviors like peeking/hugging cover.
+- **Fix note:** Added fear/exposure-driven micro behaviors (shorter peeks, cover hugging, and refusing open ground) plus help-request signaling that notifies fireteam AI and updates commander intent.
 - **Evidence:**
-  - `scripts/ai_unit.gd` (`fear`, `confidence`, `exposure`, retreat/hold logic; no call-for-help behavior).
-- **Suggested fix location:** Add help-request signaling in `scripts/ai_unit.gd` or `ai/fireteam_ai.gd` (e.g., broadcast to commander intent), and implement micro behaviors like peeking/cover-hugging.
+  - `scripts/ai_unit.gd` (micro behaviors, open-ground refusal, help request logic).
+  - `ai/fireteam_ai.gd` (help request receipt and commander intent signal).
 
 ### 3) Tactic cards
 - **Task name:** **Tactic cards:** implement a tactic catalogue with triggers, requirements, act plans, success and abort conditions and cooldowns.
-- **Status:** PARTIAL
+- **Status:** RESOLVED
 - **Expected behavior:** Tactic cards should be represented as catalog entries with explicit triggers/requirements, execution plans, and success/abort conditions plus cooldowns.
-- **What I found instead:** Tactics are hard-coded in `match` statements with cooldown timers but no structured catalogue or explicit triggers/requirements/abort conditions.
+- **Fix note:** Added a structured tactic catalogue in `ai/fireteam_ai.gd` and wired selection, execution, success, and abort checks to use it.
 - **Evidence:**
-  - `ai/fireteam_ai.gd` (hard-coded tactics in `_act_*` functions, durations/cooldowns but no data-driven catalogue).
-- **Suggested fix location:** Introduce a structured tactic catalogue in `ai/fireteam_ai.gd` (or new `data/` entry) with triggers/requirements/abort conditions used by decision logic.
+  - `ai/fireteam_ai.gd` (tactic catalogue with triggers/requirements/act plans/success+abort conditions/cooldowns).
 
 ### 4) Tactic selection & switching
 - **Task name:** **Tactic selection & switching:** choose tactic cards based on a score (gain vs risk vs feasibility vs time). Evaluate during execution; abort and switch if conditions change (e.g. heavy losses, suppression, enemy flank).

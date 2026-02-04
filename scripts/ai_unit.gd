@@ -16,6 +16,7 @@ var peek_cooldown: float = 0.0
 var cover_seek_cooldown: float = 0.0
 var seeking_cover: bool = false
 var attack_move_before_reload: bool = false
+var help_call_cooldown: float = 0.0
 
 func _physics_process(delta: float) -> void:
     super._physics_process(delta)
@@ -24,6 +25,7 @@ func _physics_process(delta: float) -> void:
     _track_weapon_state()
     _update_self_preservation(delta)
     _apply_self_preservation()
+    _maybe_call_for_help(delta)
     _apply_micro_behaviors(delta)
 
 func _update_self_preservation(delta: float) -> void:
@@ -63,7 +65,9 @@ func _apply_self_preservation() -> void:
 
 func _apply_micro_behaviors(delta: float) -> void:
     _update_reload_state(delta)
+    _update_open_ground_refusal()
     _update_cover_seek(delta)
+    _update_cover_hugging()
     _update_peeking(delta)
 
 func _update_reload_state(delta: float) -> void:
@@ -120,8 +124,66 @@ func _update_peeking(delta: float) -> void:
         return
     if recent_damage_timer < 0.4:
         return
-    peek_timer = 0.35
-    peek_cooldown = 2.0
+    var caution: float = clamp((fear + exposure) * 0.5, 0.0, 1.0)
+    peek_timer = lerp(0.45, 0.2, caution)
+    peek_cooldown = lerp(1.6, 3.0, caution)
+
+func _update_open_ground_refusal() -> void:
+    if fear > 0.85:
+        return
+    if cover_state != "none":
+        return
+    if fear < 0.7 or exposure < 0.6:
+        return
+    if seeking_cover:
+        return
+    var cover: Node2D = _find_nearest_cover(260.0)
+    if cover != null:
+        target_position = cover.global_position
+        hold = false
+        hold_mode = "off"
+        attack_move = false
+        seeking_cover = true
+        cover_seek_cooldown = 1.0
+        return
+    hold = true
+    hold_mode = "defensive"
+    attack_move = false
+
+func _update_cover_hugging() -> void:
+    if cover_state == "none":
+        return
+    if fear < 0.65 and exposure < 0.5:
+        return
+    hold = true
+    hold_mode = "defensive"
+    attack_move = false
+
+func _maybe_call_for_help(delta: float) -> void:
+    if help_call_cooldown > 0.0:
+        help_call_cooldown = max(0.0, help_call_cooldown - delta)
+        return
+    var reason: String = ""
+    if fear > 0.78 and exposure > 0.6:
+        reason = "panic"
+    elif suppression > 65.0:
+        reason = "suppressed"
+    if reason == "":
+        return
+    help_call_cooldown = 6.0
+    Logger.log_telemetry("ai_help_request", {
+        "unit_id": id,
+        "fireteam_id": fireteam_id,
+        "reason": reason,
+        "fear": fear,
+        "suppression": suppression,
+        "exposure": exposure
+    })
+    get_tree().call_group("ai_fireteams", "receive_help_request", fireteam_id, id, reason, {
+        "fear": fear,
+        "suppression": suppression,
+        "exposure": exposure
+    })
 
 func _track_weapon_state() -> void:
     if time_since_shot < last_shot_clock:
