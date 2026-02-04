@@ -41,7 +41,13 @@ var hold_mode: String = "off"
 var recent_damage_timer: float = 999.0
 var cover_state: String = "none"
 var last_known_positions: Dictionary = {}
+var sense_accumulator: float = 0.0
+var cover_accumulator: float = 0.0
+var redraw_accumulator: float = 0.0
 const LAST_KNOWN_FADE: float = 6.0
+const SENSE_INTERVAL: float = 0.15
+const COVER_INTERVAL: float = 0.2
+const REDRAW_INTERVAL: float = 0.1
 
 func _ready() -> void:
     hp = max_hp
@@ -52,7 +58,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     # update selection visuals
-    queue_redraw()
+    redraw_accumulator += delta
+    if redraw_accumulator >= REDRAW_INTERVAL:
+        redraw_accumulator = 0.0
+        queue_redraw()
 
 func _physics_process(delta: float) -> void:
     if recent_damage_timer < 999.0:
@@ -65,8 +74,15 @@ func _physics_process(delta: float) -> void:
     # Decrease suppression over time
     if suppression > 0.0:
         suppression = max(0.0, suppression - delta * 5.0 * suppression_resistance)
-    _sense_enemies(delta)
-    _update_cover_state()
+    _update_last_known_positions(delta)
+    sense_accumulator += delta
+    if sense_accumulator >= SENSE_INTERVAL:
+        sense_accumulator = 0.0
+        _sense_enemies()
+    cover_accumulator += delta
+    if cover_accumulator >= COVER_INTERVAL:
+        cover_accumulator = 0.0
+        _update_cover_state()
     # Attack logic if attack_move or an enemy is in range
     _attack_logic(delta)
 
@@ -85,8 +101,11 @@ func _update_movement(delta: float) -> void:
         var avoidance_force: Vector2 = Vector2.ZERO
         var separation_radius_scaled: float = separation_radius
         var avoidance_radius_scaled: float = avoidance_radius
-        for group_name in ["player_units", "enemy_units"]:
-            for other in get_tree().get_nodes_in_group(group_name):
+        var game: Node = _get_game()
+        if game != null:
+            var query_radius: float = max(separation_radius_scaled, avoidance_radius_scaled)
+            var neighbors: Array = game.query_units_in_radius(global_position, query_radius)
+            for other in neighbors:
                 if other == self:
                     continue
                 var offset: Vector2 = global_position - other.global_position
@@ -244,24 +263,28 @@ func _draw_cover_indicator() -> void:
         colour = Color(0.2, 0.5, 1.0)
     draw_rect(Rect2(Vector2(-5, -30), Vector2(10, 4)), colour, true)
 
-func _sense_enemies(delta: float) -> void:
+func _update_last_known_positions(delta: float) -> void:
     var keys: Array = last_known_positions.keys()
     for key in keys:
         last_known_positions[key]["age"] += delta
         if last_known_positions[key]["age"] >= LAST_KNOWN_FADE:
             last_known_positions.erase(key)
+
+func _sense_enemies() -> void:
     var groups: Array = []
     if is_in_group("player_units"):
         groups.append("enemy_units")
     elif is_in_group("enemy_units"):
         groups.append("player_units")
-    for group_name in groups:
-        for other in get_tree().get_nodes_in_group(group_name):
-            if other == self:
-                continue
-            var d: float = (other.global_position - global_position).length()
-            if d <= weapon_range and _has_line_of_sight(other.global_position, other):
-                last_known_positions[other.id] = {"pos": other.global_position, "age": 0.0}
+    var game: Node = _get_game()
+    if game == null:
+        return
+    var nearby: Array = game.query_units_in_radius(global_position, weapon_range, groups)
+    for other in nearby:
+        if other == self:
+            continue
+        if _has_line_of_sight(other.global_position, other):
+            last_known_positions[other.id] = {"pos": other.global_position, "age": 0.0}
 
 func _update_cover_state() -> void:
     var nearest: Node = _get_nearest_enemy()
@@ -279,14 +302,17 @@ func _get_nearest_enemy() -> Node:
         groups.append("player_units")
     var nearest: Node = null
     var min_dist: float = 999999.0
-    for group_name in groups:
-        for other in get_tree().get_nodes_in_group(group_name):
-            if other == self:
-                continue
-            var d: float = (other.global_position - global_position).length()
-            if d < min_dist:
-                min_dist = d
-                nearest = other
+    var game: Node = _get_game()
+    if game == null:
+        return null
+    var nearby: Array = game.query_units_in_radius(global_position, weapon_range, groups)
+    for other in nearby:
+        if other == self:
+            continue
+        var d: float = (other.global_position - global_position).length()
+        if d < min_dist:
+            min_dist = d
+            nearest = other
     return nearest
 
 func _get_cover_data(target: Node) -> Dictionary:

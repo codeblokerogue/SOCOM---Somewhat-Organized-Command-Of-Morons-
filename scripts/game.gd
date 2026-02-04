@@ -43,6 +43,9 @@ const CAMERA_ZOOM_MIN: float = 0.6
 const CAMERA_ZOOM_MAX: float = 1.6
 const CAMERA_ZOOM_STEP: float = 0.1
 const MAP_BOUNDS: Rect2 = Rect2(Vector2.ZERO, Vector2(1600, 900))
+const SPATIAL_HASH_CELL_SIZE: float = 120.0
+
+var spatial_hash: Dictionary = {}
 
 func _ready() -> void:
     add_to_group("game")
@@ -68,6 +71,51 @@ func _process(delta: float) -> void:
     _update_objective(delta)
     _update_suppression_stats()
     _check_victory_conditions()
+
+func _physics_process(_delta: float) -> void:
+    _rebuild_spatial_hash()
+
+func _rebuild_spatial_hash() -> void:
+    spatial_hash.clear()
+    var units: Array = get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units")
+    for unit in units:
+        if not (unit is Node2D):
+            continue
+        var cell: Vector2i = _cell_for_position(unit.global_position)
+        if not spatial_hash.has(cell):
+            spatial_hash[cell] = []
+        spatial_hash[cell].append(unit)
+
+func query_units_in_radius(center: Vector2, radius: float, groups: Array = []) -> Array:
+    var results: Array = []
+    if radius <= 0.0:
+        return results
+    var min_pos: Vector2 = center - Vector2(radius, radius)
+    var max_pos: Vector2 = center + Vector2(radius, radius)
+    var min_cell: Vector2i = _cell_for_position(min_pos)
+    var max_cell: Vector2i = _cell_for_position(max_pos)
+    for x in range(min_cell.x, max_cell.x + 1):
+        for y in range(min_cell.y, max_cell.y + 1):
+            var cell: Vector2i = Vector2i(x, y)
+            if not spatial_hash.has(cell):
+                continue
+            for unit in spatial_hash[cell]:
+                if not is_instance_valid(unit):
+                    continue
+                if not groups.is_empty():
+                    var matches: bool = false
+                    for group_name in groups:
+                        if unit.is_in_group(group_name):
+                            matches = true
+                            break
+                    if not matches:
+                        continue
+                if unit.global_position.distance_to(center) <= radius:
+                    results.append(unit)
+    return results
+
+func _cell_for_position(position: Vector2) -> Vector2i:
+    return Vector2i(int(floor(position.x / SPATIAL_HASH_CELL_SIZE)), int(floor(position.y / SPATIAL_HASH_CELL_SIZE)))
 
 func _unhandled_input(event: InputEvent) -> void:
     # Right‑click issues orders

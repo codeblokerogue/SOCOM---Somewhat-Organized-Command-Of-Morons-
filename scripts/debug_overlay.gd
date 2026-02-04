@@ -11,9 +11,10 @@ var current_state: String = "Unknown"
 const MAX_EVENTS: int = 20
 var show_nav_paths: bool = false
 var show_cover_edges: bool = false
-var show_los: bool = true
+var show_los: bool = false
 var show_suppression_heat: bool = false
 var show_ai_tactics: bool = false
+const MAX_LAST_KNOWN_MARKERS: int = 12
 
 func _ready() -> void:
     # Add to a group so other scripts can send log events
@@ -95,9 +96,9 @@ func _draw() -> void:
         y_offset += line_height
     var viewport: Viewport = get_viewport()
     var canvas_xform: Transform2D = viewport.get_canvas_transform()
-    if game != null:
+    if game != null and show_los:
         var selection_handler: Node = game.get_node_or_null("SelectionHandler")
-        if selection_handler != null:
+        if selection_handler != null and selection_handler.selection.size() > 0:
             var mouse_world: Vector2 = game.get_global_mouse_position()
             var mouse_screen: Vector2 = canvas_xform * mouse_world
             for unit in selection_handler.selection:
@@ -113,6 +114,7 @@ func _draw() -> void:
         _draw_suppression_heat(canvas_xform)
     if show_ai_tactics:
         _draw_ai_tactics(canvas_xform)
+    var markers_drawn: int = 0
     for unit in get_tree().get_nodes_in_group("player_units"):
         for entry in unit.last_known_positions.values():
             var age: float = entry["age"]
@@ -121,6 +123,9 @@ func _draw() -> void:
             var alpha: float = clamp(1.0 - (age / fade_time), 0.0, 1.0)
             var screen_pos: Vector2 = canvas_xform * pos
             draw_circle(screen_pos, 4.0, Color(1.0, 1.0, 1.0, alpha))
+            markers_drawn += 1
+            if markers_drawn >= MAX_LAST_KNOWN_MARKERS:
+                return
 
 func _draw_nav_paths(canvas_xform: Transform2D) -> void:
     for unit in get_tree().get_nodes_in_group("player_units"):
