@@ -327,6 +327,21 @@ func _register_unit(unit: Node) -> void:
         "status": "Active"
     }
 
+func _get_assigned_units() -> Array:
+    var assigned: Array = []
+    for entry in unit_roster.values():
+        if typeof(entry) != TYPE_DICTIONARY:
+            continue
+        if not entry.get("assigned", true):
+            continue
+        if entry.get("status", "Active") != "Active":
+            continue
+        assigned.append(entry)
+    assigned.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+        return int(a.get("id", 0)) < int(b.get("id", 0))
+    )
+    return assigned
+
 func _apply_persisted_data(unit: Node) -> void:
     if unit_roster.has(unit.id):
         var data: Dictionary = unit_roster[unit.id]
@@ -615,6 +630,18 @@ func _load_campaign_state() -> void:
                 "status": entry.get("status", "Active")
             }
     _sync_id_generator()
+
+func _sync_id_generator() -> void:
+    var max_id: int = 0
+    for entry in unit_roster.values():
+        if typeof(entry) != TYPE_DICTIONARY:
+            continue
+        max_id = max(max_id, int(entry.get("id", 0)))
+    for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
+        if "id" in unit:
+            max_id = max(max_id, int(unit.id))
+    if max_id > 0:
+        IDGenerator.sync_next_id(max_id)
 
 func _save_campaign_state() -> void:
     _sync_roster_from_units()
