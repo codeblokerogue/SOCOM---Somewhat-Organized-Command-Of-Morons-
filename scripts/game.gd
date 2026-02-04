@@ -57,7 +57,7 @@ func _ready() -> void:
     end_button.pressed.connect(_on_end_pressed)
     # Log events
     for unit in get_tree().get_nodes_in_group("player_units") + get_tree().get_nodes_in_group("enemy_units"):
-        Logger.log_event("Spawned Unit %d (role %s)" % [unit.id, unit.role])
+        GameLog.log_event("Spawned Unit %d (role %s)" % [unit.id, unit.role])
     if playtest_active:
         _start_playtest_runner()
 
@@ -86,12 +86,12 @@ func _unhandled_input(event: InputEvent) -> void:
         var order_name: String = "Move"
         if attack_move:
             order_name = "Attack‑move"
-        Logger.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
+        GameLog.log_event("%s order issued to %d units" % [order_name, selection_handler.selection.size()])
         _record_timeline_event("%s order" % order_name, {
             "unit_count": selection_handler.selection.size(),
             "position": {"x": pos.x, "y": pos.y}
         })
-        Logger.log_telemetry("order_issued", {
+        GameLog.log_telemetry("order_issued", {
             "order": order_name,
             "unit_count": selection_handler.selection.size(),
             "pos_x": pos.x,
@@ -104,7 +104,7 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_SPACE:
             # Pause/unpause
             get_tree().paused = not get_tree().paused
-            Logger.log_event("Game paused" if get_tree().paused else "Game resumed")
+            GameLog.log_event("Game paused" if get_tree().paused else "Game resumed")
         elif event.keycode == KEY_H:
             _toggle_hold_mode()
         elif event.keycode == KEY_F:
@@ -131,7 +131,7 @@ func _unhandled_input(event: InputEvent) -> void:
                 # assign radial offset around target to spread units
                 var angle = float(i) / max(selection_handler.selection.size(), 1) * TAU
                 unit.spread_offset = Vector2(cos(angle), sin(angle)) * spacing
-            Logger.log_event("Formation mode set to %s" % mode)
+            GameLog.log_event("Formation mode set to %s" % mode)
             _record_timeline_event("Formation spacing: %s" % mode)
         else:
             _handle_control_group_input(event)
@@ -152,7 +152,7 @@ func _end_run() -> void:
         match_stats["end_reason"] = "Manual end"
     _finalize_match_summary()
     _save_campaign_state()
-    Logger.log_event("State transition: Game -> AfterAction")
+    GameLog.log_event("State transition: Game -> AfterAction")
     get_tree().change_scene_to_file("res://scenes/AfterAction.tscn")
 
 func spawn_player_units(count: int) -> void:
@@ -279,19 +279,19 @@ func _apply_map_modifiers() -> void:
 func _load_unit_archetypes() -> Dictionary:
     var path: String = "res://data/units.json"
     if not FileAccess.file_exists(path):
-        Logger.log_event("Unit data missing: %s" % path)
+        GameLog.log_event("Unit data missing: %s" % path)
         return {}
     var file: FileAccess = FileAccess.open(path, FileAccess.READ)
     var content: String = file.get_as_text()
     var parsed = JSON.parse_string(content)
     if typeof(parsed) != TYPE_DICTIONARY:
-        Logger.log_event("Unit data invalid JSON: %s" % path)
+        GameLog.log_event("Unit data invalid JSON: %s" % path)
         return {}
     return parsed
 
 func _apply_unit_archetype(unit: Node, archetype_name: String) -> void:
     if not unit_archetypes.has(archetype_name):
-        Logger.log_event("Unknown archetype: %s" % archetype_name)
+        GameLog.log_event("Unknown archetype: %s" % archetype_name)
         return
     var data: Dictionary = unit_archetypes[archetype_name]
     unit.role = archetype_name
@@ -389,7 +389,7 @@ func _toggle_hold_mode() -> void:
     var mode_label: String = "off"
     if selection_handler.selection.size() > 0:
         mode_label = selection_handler.selection[0].hold_mode
-    Logger.log_event("Hold mode set to %s" % mode_label)
+    GameLog.log_event("Hold mode set to %s" % mode_label)
     _record_timeline_event("Hold mode: %s" % mode_label, {"unit_count": selection_handler.selection.size()})
 
 func _handle_control_group_input(_event: InputEvent) -> void:
@@ -410,14 +410,14 @@ func _handle_control_group_input(_event: InputEvent) -> void:
     var group_id: int = key_to_group[event.keycode]
     if event.ctrl_pressed:
         control_groups[group_id] = selection_handler.selection.duplicate()
-        Logger.log_event("Control group %d assigned (%d units)" % [group_id, selection_handler.selection.size()])
+        GameLog.log_event("Control group %d assigned (%d units)" % [group_id, selection_handler.selection.size()])
         _record_timeline_event("Control group assigned", {"group": group_id, "unit_count": selection_handler.selection.size()})
         return
     var units: Array = _get_control_group_units(group_id)
     if units.is_empty():
         return
     selection_handler.select_units(units, false)
-    Logger.log_event("Control group %d selected (%d units)" % [group_id, units.size()])
+    GameLog.log_event("Control group %d selected (%d units)" % [group_id, units.size()])
     _record_timeline_event("Control group selected", {"group": group_id, "unit_count": units.size()})
 
 func _get_control_group_units(group_id: int) -> Array:
@@ -571,7 +571,7 @@ func award_xp(unit: Node, amount: int) -> void:
         return
     unit.xp += amount
     match_stats["xp_awarded"] += amount
-    Logger.log_event("Unit %d gained %d XP" % [unit.id, amount])
+    GameLog.log_event("Unit %d gained %d XP" % [unit.id, amount])
     if unit_roster.has(unit.id):
         unit_roster[unit.id]["xp"] = unit.xp
         unit_roster[unit.id]["rank"] = unit.rank
@@ -595,7 +595,7 @@ func record_flank_event(attacker: Node, target: Node) -> void:
     }
     match_stats["flank_events"].append(entry)
     _record_timeline_event("Flank kill", entry)
-    Logger.log_telemetry("flank_event", entry)
+    GameLog.log_telemetry("flank_event", entry)
 
 func _finalize_match_summary() -> void:
     match_stats["survivors_player"] = get_tree().get_nodes_in_group("player_units").size()
@@ -604,7 +604,7 @@ func _finalize_match_summary() -> void:
         match_stats["end_reason"] = "Unknown"
     match_stats["suppression_heatmap"] = suppression_heatmap
     get_tree().set_meta("match_summary", match_stats)
-    Logger.dump_to_file("user://match_log.txt")
+    GameLog.dump_to_file("user://match_log.txt")
 
 func _load_campaign_state() -> void:
     var path: String = "user://campaign.json"
@@ -729,5 +729,5 @@ func _start_playtest_runner() -> void:
         return
     var runner: Node = preload("res://scripts/playtest_runner.gd").new()
     playtest_runner = runner
-    Logger.log_event("Playtest: runner starting")
+    GameLog.log_event("Playtest: runner starting")
     add_child(runner)

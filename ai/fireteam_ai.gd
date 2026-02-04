@@ -134,7 +134,7 @@ func _tick(delta: float) -> void:
                 cooldowns[current_tactic] = _get_tactic_cooldown(current_tactic)
             _log("Fireteam %d tactic -> %s" % [fireteam_id, current_tactic])
             _record_timeline_event("Fireteam tactic: %s" % current_tactic)
-            Logger.log_telemetry("ai_tactic_selected", {
+            GameLog.log_telemetry("ai_tactic_selected", {
                 "fireteam_id": fireteam_id,
                 "tactic": current_tactic,
                 "unit_count": units.size()
@@ -149,7 +149,7 @@ func _tick(delta: float) -> void:
     if _should_switch(next_tactic, sense):
         pending_tactic = next_tactic
         comms_timer = 0.0
-        Logger.log_telemetry("ai_tactic_pending", {
+        GameLog.log_telemetry("ai_tactic_pending", {
             "fireteam_id": fireteam_id,
             "tactic": next_tactic,
             "reason": "switch",
@@ -175,7 +175,7 @@ func _sense() -> Dictionary:
     var heavy_losses: bool = avg_hp < 0.35 or units.size() <= 2
     var enemy_flank: bool = _detect_enemy_flank(centroid, player_units)
     var losing: bool = avg_hp < 0.45 or avg_fear > 0.6 or avg_suppression > 55.0
-    Logger.log_telemetry("ai_sense", {
+    GameLog.log_telemetry("ai_sense", {
         "fireteam_id": fireteam_id,
         "unit_count": units.size(),
         "enemy_count": player_units.size(),
@@ -189,7 +189,7 @@ func _sense() -> Dictionary:
         "losing": losing
     })
     if enemy_flank:
-        Logger.log_telemetry("ai_enemy_flank_detected", {
+        GameLog.log_telemetry("ai_enemy_flank_detected", {
             "fireteam_id": fireteam_id,
             "enemy_count": player_units.size(),
             "centroid": centroid
@@ -241,7 +241,7 @@ func _decide(sense: Dictionary) -> String:
         if score > best_score:
             best_score = score
             best = key
-    Logger.log_telemetry("ai_decide", {
+    GameLog.log_telemetry("ai_decide", {
         "fireteam_id": fireteam_id,
         "intent": commander_intent.get("goal", "hold"),
         "scores": scores,
@@ -304,7 +304,7 @@ func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
     if current_tactic == "idle":
         return true
     if sense.get("heavy_suppression", false) or sense.get("heavy_losses", false) or sense.get("enemy_flank", false):
-        Logger.log_telemetry("ai_tactic_abort", {
+        GameLog.log_telemetry("ai_tactic_abort", {
             "fireteam_id": fireteam_id,
             "tactic": current_tactic,
             "reason": "pressure",
@@ -339,7 +339,7 @@ func _evaluate(sense: Dictionary) -> void:
         new_goal = "hold"
     if new_goal != commander_intent.get("goal", "hold"):
         commander_intent["goal"] = new_goal
-        Logger.log_telemetry("ai_intent_changed", {
+        GameLog.log_telemetry("ai_intent_changed", {
             "fireteam_id": fireteam_id,
             "intent": new_goal
         })
@@ -356,7 +356,7 @@ func _evaluate(sense: Dictionary) -> void:
         "avg_suppression": sense.get("avg_suppression", 0.0)
     }
     last_evaluation = evaluation
-    Logger.log_telemetry("ai_evaluate", evaluation)
+    GameLog.log_telemetry("ai_evaluate", evaluation)
 
 func _get_tactic_data(tactic: String) -> Dictionary:
     return TACTIC_CATALOGUE.get(tactic, {})
@@ -638,7 +638,7 @@ func _should_update() -> bool:
     return true
 
 func _log(message: String) -> void:
-    Logger.log_event(message)
+    GameLog.log_event(message)
 
 func _record_timeline_event(label: String) -> void:
     var game: Node = get_tree().get_first_node_in_group("game")
@@ -648,7 +648,7 @@ func _record_timeline_event(label: String) -> void:
 func receive_help_request(team_id: int, unit_id: int, reason: String, metrics: Dictionary) -> void:
     if team_id != fireteam_id:
         return
-    Logger.log_telemetry("ai_help_received", {
+    GameLog.log_telemetry("ai_help_received", {
         "fireteam_id": fireteam_id,
         "unit_id": unit_id,
         "reason": reason,

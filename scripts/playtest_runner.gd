@@ -34,7 +34,7 @@ func _ready() -> void:
         return
     move_target = _offset_point(_get_centroid(player_units), Vector2(160.0, 0.0))
     attack_target = _get_centroid(enemy_units)
-    Logger.log_event("Playtest: automation online")
+    GameLog.log_event("Playtest: automation online")
 
 func _process(delta: float) -> void:
     elapsed += delta
@@ -71,7 +71,7 @@ func _step_move_order() -> void:
             unit.hold = false
             unit.hold_mode = "off"
         issued_move = true
-        Logger.log_event("Playtest: move order issued")
+        GameLog.log_event("Playtest: move order issued")
         step_timer = 0.0
         return
     if step_timer < 0.3:
@@ -92,7 +92,7 @@ func _step_attack_move() -> void:
             unit.hold = false
             unit.hold_mode = "off"
         issued_attack = true
-        Logger.log_event("Playtest: attack-move order issued")
+        GameLog.log_event("Playtest: attack-move order issued")
         step_timer = 0.0
         return
     if step_timer < 0.3:
@@ -110,7 +110,7 @@ func _step_hold() -> void:
             unit.hold_mode = "defensive"
             unit.attack_move = false
         issued_hold = true
-        Logger.log_event("Playtest: hold order issued")
+        GameLog.log_event("Playtest: hold order issued")
         step_timer = 0.0
         return
     if step_timer < 0.2:
@@ -124,19 +124,19 @@ func _step_hold() -> void:
 func _step_end_run() -> void:
     if step_timer < 0.4:
         return
-    Logger.log_event("Playtest: ending match")
+    GameLog.log_event("Playtest: ending match")
     if game.has_method("_end_run"):
         game._end_run()
     else:
         _fail("Game missing _end_run")
 
 func _advance_step(message: String) -> void:
-    Logger.log_event("Playtest: %s" % message)
+    GameLog.log_event("Playtest: %s" % message)
     step += 1
     step_timer = 0.0
 
 func _fail(reason: String) -> void:
-    Logger.log_event("Playtest failed: %s" % reason)
+    GameLog.log_event("Playtest failed: %s" % reason)
     if get_tree() != null:
         get_tree().set_meta("playtest_failed", true)
         get_tree().set_meta("playtest_fail_reason", reason)
