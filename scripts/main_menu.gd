@@ -37,9 +37,9 @@ func _on_quit_pressed() -> void:
 
 func _maybe_start_playtest() -> void:
     var args: Array = OS.get_cmdline_user_args()
-    if args.has("--playtest") or args.has("playtest"):
+    if args.has("--playtest"):
         get_tree().set_meta("playtest_active", true)
-        Logger.log_event("Playtest flag detected; auto-starting")
+        Logger.log_event("Playtest start: --playtest flag detected")
         call_deferred("_start_playtest")
 
 func _start_playtest() -> void:

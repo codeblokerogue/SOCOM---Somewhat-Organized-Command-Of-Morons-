@@ -729,4 +729,5 @@ func _start_playtest_runner() -> void:
         return
     var runner: Node = preload("res://scripts/playtest_runner.gd").new()
     playtest_runner = runner
+    Logger.log_event("Playtest: runner starting")
     add_child(runner)
