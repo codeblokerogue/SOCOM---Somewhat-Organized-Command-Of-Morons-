@@ -20,15 +20,15 @@ func _ready() -> void:
 
 func _on_start_pressed() -> void:
     # Start the match by loading the Game scene
-    GameLog.log_event("State transition: Menu -> Game")
+    SOCOMLog.log_event("State transition: Menu -> Game")
     get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
 func _on_start_map2_pressed() -> void:
-    GameLog.log_event("State transition: Menu -> GameMap2")
+    SOCOMLog.log_event("State transition: Menu -> GameMap2")
     get_tree().change_scene_to_file("res://scenes/GameMap2.tscn")
 
 func _on_roster_pressed() -> void:
-    GameLog.log_event("State transition: Menu -> Roster")
+    SOCOMLog.log_event("State transition: Menu -> Roster")
     get_tree().change_scene_to_file("res://scenes/Roster.tscn")
 
 func _on_quit_pressed() -> void:
@@ -39,9 +39,9 @@ func _maybe_start_playtest() -> void:
     var args: Array = OS.get_cmdline_user_args()
     if args.has("--playtest"):
         get_tree().set_meta("playtest_active", true)
-        GameLog.log_event("Playtest start: --playtest flag detected")
+        SOCOMLog.log_event("Playtest start: --playtest flag detected")
         call_deferred("_start_playtest")
 
 func _start_playtest() -> void:
-    GameLog.log_event("State transition: Menu -> Game (playtest)")
+    SOCOMLog.log_event("State transition: Menu -> Game (playtest)")
     get_tree().change_scene_to_file("res://scenes/Game.tscn")

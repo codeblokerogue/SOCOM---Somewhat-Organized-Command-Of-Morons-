@@ -36,7 +36,7 @@ This repository follows **PRD v1.0** and delivers a playable top‑down tactics 
 ./scripts/playtest_headless.sh
 ```
 
-Playtest mode is enabled via user arguments after `--` (engine args are ignored):
+Playtest mode is enabled via user arguments after `--` (engine args are ignored). Godot exposes these in `OS.get_cmdline_user_args()`:
 
 ```bash
 ./.tools/godot/godot --headless --path . -- --playtest
