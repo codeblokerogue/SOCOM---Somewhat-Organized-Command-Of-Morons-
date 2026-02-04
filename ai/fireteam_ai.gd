@@ -358,37 +358,6 @@ func _evaluate(sense: Dictionary) -> void:
     last_evaluation = evaluation
     Logger.log_telemetry("ai_evaluate", evaluation)
 
-func _evaluate(sense: Dictionary) -> void:
-    var new_goal: String = commander_intent.get("goal", "hold")
-    if sense.get("losing", false):
-        new_goal = "disengage"
-    elif sense.get("avg_suppression", 0.0) > 40.0:
-        new_goal = "fix"
-    elif sense.get("avg_fear", 0.0) < 0.4 and sense.get("avg_hp", 1.0) > 0.7:
-        new_goal = "probe"
-    else:
-        new_goal = "hold"
-    if new_goal != commander_intent.get("goal", "hold"):
-        commander_intent["goal"] = new_goal
-        Logger.log_telemetry("ai_intent_changed", {
-            "fireteam_id": fireteam_id,
-            "intent": new_goal
-        })
-        _log("Fireteam %d intent -> %s" % [fireteam_id, new_goal])
-        _record_timeline_event("Fireteam intent: %s" % new_goal)
-    var success: bool = _tactic_success(current_tactic, sense)
-    var evaluation: Dictionary = {
-        "fireteam_id": fireteam_id,
-        "tactic": current_tactic,
-        "intent": commander_intent.get("goal", "hold"),
-        "success": success,
-        "avg_fear": sense.get("avg_fear", 0.0),
-        "avg_hp": sense.get("avg_hp", 1.0),
-        "avg_suppression": sense.get("avg_suppression", 0.0)
-    }
-    last_evaluation = evaluation
-    Logger.log_telemetry("ai_evaluate", evaluation)
-
 func _get_tactic_data(tactic: String) -> Dictionary:
     return TACTIC_CATALOGUE.get(tactic, {})
 
