@@ -14,7 +14,7 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
 [autoload]
-Logger="*res://scripts/logger.gd"
+GameLog="*res://scripts/logger.gd"
 
 [input]
 # Define custom actions used in scripts

@@ -19,7 +19,7 @@ func _ready() -> void:
     _load_roster()
 
 func _on_back_pressed() -> void:
-    Logger.log_event("State transition: Roster -> Menu")
+    GameLog.log_event("State transition: Roster -> Menu")
     get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _load_roster() -> void:

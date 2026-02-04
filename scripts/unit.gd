@@ -152,7 +152,7 @@ func _attack_logic(delta: float) -> void:
         if randf() <= hit_chance:
             var final_damage: float = damage * cover_data["damage_multiplier"]
             nearest.take_damage(final_damage, self)
-            Logger.log_telemetry("combat_hit", {
+            GameLog.log_telemetry("combat_hit", {
                 "attacker_id": id,
                 "target_id": nearest.id,
                 "damage": final_damage,
@@ -160,7 +160,7 @@ func _attack_logic(delta: float) -> void:
                 "cover": cover_data.get("type", "none")
             })
         else:
-            Logger.log_telemetry("combat_miss", {
+            GameLog.log_telemetry("combat_miss", {
                 "attacker_id": id,
                 "target_id": nearest.id,
                 "distance": min_dist,
@@ -168,7 +168,7 @@ func _attack_logic(delta: float) -> void:
             })
         # Apply suppression to target
         nearest.suppression += _suppression_amount()
-        Logger.log_telemetry("combat_suppression", {
+        GameLog.log_telemetry("combat_suppression", {
             "attacker_id": id,
             "target_id": nearest.id,
             "amount": _suppression_amount()
@@ -188,7 +188,7 @@ func take_damage(amount: float, source: Node) -> void:
             game.record_flank_event(source, self)
             if is_in_group("player_units") and game.has_method("mark_unit_lost"):
                 game.mark_unit_lost(id, "KIA")
-        Logger.log_telemetry("combat_kill", {
+        GameLog.log_telemetry("combat_kill", {
             "attacker_id": source.id,
             "target_id": id,
             "cover": cover_state
