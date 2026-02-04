@@ -6,12 +6,13 @@ This audit reviews **only** tasks up to and including **v0.9** in `tasks.md`.
 
 ### 1) AI architecture
 - **Task name:** **AI architecture:** implement the Sense→Decide→Act→Evaluate loop for AI fireteams. Each fireteam consists of 2–6 units. Maintain a commander intent with high-level goals (hold, probe, fix, disengage) and individual brains for micro decisions (cover, peek, reload, retreat).
-- **Status:** PARTIAL
+- **Status:** RESOLVED
 - **Expected behavior:** Fireteams must run SDAE with commander intent, while individual AI brains handle micro decisions like cover usage, peeking, reloading, and retreating.
 - **What I found instead:** Fireteam SDAE loop and commander intent exist, and AI units can retreat, but there are no explicit micro behaviors for cover-seeking, peeking, or reloading.
+- **Fix note:** Added explicit cover-seek, peek, and reload micro behavior handling to the per-unit AI brain, including simple timers and cover targeting logic.
 - **Evidence:**
   - `ai/fireteam_ai.gd` (Sense/Decide/Act/Evaluate loop, commander intent). 
-  - `scripts/ai_unit.gd` (self-preservation + retreat only; no cover/peek/reload routines). 
+  - `scripts/ai_unit.gd` (added cover-seek, peek, and reload micro behaviors). 
 - **Suggested fix location:** Extend `scripts/ai_unit.gd` with explicit cover/peek/reload behaviors, and integrate any per-unit micro decision hooks from `ai/fireteam_ai.gd` if needed.
 
 ### 2) Self-preservation
@@ -60,4 +61,3 @@ This audit reviews **only** tasks up to and including **v0.9** in `tasks.md`.
 - **Evidence:**
   - `scripts/roster.gd` (assign/unassign only; no casualty replacement logic).
 - **Suggested fix location:** Extend `scripts/roster.gd` and `scenes/Roster.tscn` with a replacement action (e.g., create a new unit entry for fallen units).
-
