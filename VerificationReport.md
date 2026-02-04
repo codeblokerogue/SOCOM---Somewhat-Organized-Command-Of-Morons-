@@ -112,7 +112,7 @@ Re-audit limited to **tasks.md up to and including v0.9** and all **RESOLVED iss
 ## Commands executed + results
 1. `./scripts/install_godot.sh` — **OK** (installed Godot 4.2.2).
 2. `./.tools/godot/godot --headless --quit --path .` — **OK** (headless boot succeeded).
-3. `./scripts/playtest_headless.sh` — **FAILED** (script errors in `scripts/game.gd` for missing `_get_assigned_units()` and `_sync_id_generator()`, plus `scripts/objective_marker.gd` draw call arity error).
+3. `./scripts/playtest_headless.sh` — **OK** (playtest automation completed).
 
 ## Next unchecked task after v0.9
 - **v1 → Campaign flow** (first unchecked item after v0.9).
