@@ -42,6 +42,15 @@ Playtest mode is enabled via user arguments after `--` (engine args are ignored)
 ./.tools/godot/godot --headless --path . -- --playtest
 ```
 
+Optional CLI logging helpers (passed after `--`):
+
+```bash
+./.tools/godot/godot --headless --path . -- --playtest --log-file ./playtest.log --print-fps
+```
+
+- `--log-file <path>` writes SOCOM log output to the file (supports `--log-file=path`).
+- `--print-fps` prints FPS once per second to stdout.
+
 ### Local GUI (Windows/macOS/Linux)
 
 1. Launch the Godot 4 editor you downloaded.
