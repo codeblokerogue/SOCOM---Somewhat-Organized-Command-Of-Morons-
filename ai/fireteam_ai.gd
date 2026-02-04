@@ -17,15 +17,71 @@ var last_update_time: float = 0.0
 var commander_intent: Dictionary = {"goal": "hold", "confidence": 0.5}
 var last_evaluation: Dictionary = {}
 
-const TACTIC_DURATIONS := {
-    "base_of_fire": 6.0,
-    "flank_subgroup": 7.0,
-    "screen": 7.0,
-    "peel_back": 4.0,
-    "reserve": 8.0,
-    "probe_and_pull": 6.0,
-    "recon_by_fire": 6.0,
-    "fix_and_shift": 7.0
+const TACTIC_CATALOGUE := {
+    "base_of_fire": {
+        "triggers": {"enemy_visible": true, "intent": ["hold", "fix"]},
+        "requirements": {"min_units": 1},
+        "act_plan": "_act_base_of_fire",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 6.0
+    },
+    "flank_subgroup": {
+        "triggers": {"enemy_visible": true, "intent": ["probe", "hold"]},
+        "requirements": {"min_units": 3},
+        "act_plan": "_act_flank_subgroup",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 7.0
+    },
+    "screen": {
+        "triggers": {"enemy_visible": true, "intent": ["probe", "hold"]},
+        "requirements": {"min_units": 4},
+        "act_plan": "_act_screen",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 7.0
+    },
+    "peel_back": {
+        "triggers": {"enemy_visible": true, "intent": ["disengage"]},
+        "requirements": {"min_units": 1},
+        "act_plan": "_act_peel_back",
+        "success_conditions": {"stabilized": true, "duration": true},
+        "abort_conditions": {"not_losing": true},
+        "cooldown": 4.0
+    },
+    "reserve": {
+        "triggers": {"enemy_visible": true, "intent": ["hold", "fix"]},
+        "requirements": {"min_units": 4},
+        "act_plan": "_act_reserve",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 8.0
+    },
+    "probe_and_pull": {
+        "triggers": {"enemy_visible": true, "intent": ["probe"]},
+        "requirements": {"min_units": 3},
+        "act_plan": "_act_probe_and_pull",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 6.0
+    },
+    "recon_by_fire": {
+        "triggers": {"enemy_visible": true, "intent": ["probe", "hold"]},
+        "requirements": {"min_units": 2},
+        "act_plan": "_act_recon_by_fire",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 6.0
+    },
+    "fix_and_shift": {
+        "triggers": {"enemy_visible": true, "intent": ["fix"]},
+        "requirements": {"min_units": 4},
+        "act_plan": "_act_fix_and_shift",
+        "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
+        "abort_conditions": {"losing": true},
+        "cooldown": 7.0
+    }
 }
 
 func _ready() -> void:
@@ -51,7 +107,7 @@ func _tick(delta: float) -> void:
             comms_timer = 0.0
             tactic_timer = 0.0
             if current_tactic != "idle":
-                cooldowns[current_tactic] = TACTIC_DURATIONS.get(current_tactic, 6.0)
+                cooldowns[current_tactic] = _get_tactic_cooldown(current_tactic)
             _log("Fireteam %d tactic -> %s" % [fireteam_id, current_tactic])
             _record_timeline_event("Fireteam tactic: %s" % current_tactic)
             Logger.log_telemetry("ai_tactic_selected", {
@@ -147,6 +203,8 @@ func _decide(sense: Dictionary) -> String:
         scores["reserve"] += 0.25
         scores["fix_and_shift"] += 0.25
     for key in scores.keys():
+        if not _tactic_is_available(key, sense):
+            scores[key] = -1.0
         if cooldowns.has(key) and cooldowns[key] > 0.0:
             scores[key] = -1.0
     var best: String = "base_of_fire"
@@ -167,9 +225,9 @@ func _decide(sense: Dictionary) -> String:
 func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
     if current_tactic == "idle":
         return true
-    if next_tactic != current_tactic and sense["losing"] and current_tactic != "peel_back":
+    if _tactic_should_abort(current_tactic, sense):
         return true
-    var duration: float = TACTIC_DURATIONS.get(current_tactic, 6.0)
+    var duration: float = _get_tactic_cooldown(current_tactic)
     if tactic_timer >= duration:
         return true
     return false
@@ -177,23 +235,9 @@ func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
 func _act(tactic: String) -> void:
     if tactic == "idle":
         return
-    match tactic:
-        "base_of_fire":
-            _act_base_of_fire()
-        "flank_subgroup":
-            _act_flank_subgroup()
-        "screen":
-            _act_screen()
-        "peel_back":
-            _act_peel_back()
-        "reserve":
-            _act_reserve()
-        "probe_and_pull":
-            _act_probe_and_pull()
-        "recon_by_fire":
-            _act_recon_by_fire()
-        "fix_and_shift":
-            _act_fix_and_shift()
+    var plan: String = _get_tactic_data(tactic).get("act_plan", "")
+    if plan != "" and has_method(plan):
+        call(plan)
 
 func _evaluate(sense: Dictionary) -> void:
     var new_goal: String = commander_intent.get("goal", "hold")
@@ -213,10 +257,7 @@ func _evaluate(sense: Dictionary) -> void:
         })
         _log("Fireteam %d intent -> %s" % [fireteam_id, new_goal])
         _record_timeline_event("Fireteam intent: %s" % new_goal)
-    var duration: float = TACTIC_DURATIONS.get(current_tactic, 6.0)
-    var success: bool = not sense.get("losing", false)
-    if tactic_timer >= duration:
-        success = success and sense.get("avg_hp", 1.0) > 0.5
+    var success: bool = _tactic_success(current_tactic, sense)
     var evaluation: Dictionary = {
         "fireteam_id": fireteam_id,
         "tactic": current_tactic,
@@ -247,10 +288,7 @@ func _evaluate(sense: Dictionary) -> void:
         })
         _log("Fireteam %d intent -> %s" % [fireteam_id, new_goal])
         _record_timeline_event("Fireteam intent: %s" % new_goal)
-    var duration: float = TACTIC_DURATIONS.get(current_tactic, 6.0)
-    var success: bool = not sense.get("losing", false)
-    if tactic_timer >= duration:
-        success = success and sense.get("avg_hp", 1.0) > 0.5
+    var success: bool = _tactic_success(current_tactic, sense)
     var evaluation: Dictionary = {
         "fireteam_id": fireteam_id,
         "tactic": current_tactic,
@@ -262,6 +300,62 @@ func _evaluate(sense: Dictionary) -> void:
     }
     last_evaluation = evaluation
     Logger.log_telemetry("ai_evaluate", evaluation)
+
+func _get_tactic_data(tactic: String) -> Dictionary:
+    return TACTIC_CATALOGUE.get(tactic, {})
+
+func _get_tactic_cooldown(tactic: String) -> float:
+    return _get_tactic_data(tactic).get("cooldown", 6.0)
+
+func _tactic_is_available(tactic: String, sense: Dictionary) -> bool:
+    return _tactic_meets_requirements(tactic, sense) and _tactic_is_triggered(tactic, sense)
+
+func _tactic_meets_requirements(tactic: String, sense: Dictionary) -> bool:
+    var requirements: Dictionary = _get_tactic_data(tactic).get("requirements", {})
+    var min_units: int = requirements.get("min_units", 1)
+    if units.size() < min_units:
+        return false
+    if requirements.get("enemy_visible", false) and sense.get("nearest_enemy") == null:
+        return false
+    return true
+
+func _tactic_is_triggered(tactic: String, sense: Dictionary) -> bool:
+    var triggers: Dictionary = _get_tactic_data(tactic).get("triggers", {})
+    if triggers.get("enemy_visible", false) and sense.get("nearest_enemy") == null:
+        return false
+    if triggers.has("intent"):
+        var intent_trigger = triggers.get("intent")
+        var current_intent: String = commander_intent.get("goal", "hold")
+        if intent_trigger is Array and not intent_trigger.has(current_intent):
+            return false
+        if intent_trigger is String and intent_trigger != current_intent:
+            return false
+    return true
+
+func _tactic_success(tactic: String, sense: Dictionary) -> bool:
+    var success_conditions: Dictionary = _get_tactic_data(tactic).get("success_conditions", {})
+    var success: bool = true
+    if success_conditions.get("not_losing", false):
+        success = success and not sense.get("losing", false)
+    if success_conditions.get("stabilized", false):
+        success = success and not sense.get("losing", false)
+    if success_conditions.has("min_avg_hp"):
+        if success_conditions.get("min_avg_hp_after_duration", false):
+            if tactic_timer >= _get_tactic_cooldown(tactic):
+                success = success and sense.get("avg_hp", 1.0) >= success_conditions.get("min_avg_hp", 0.0)
+        else:
+            success = success and sense.get("avg_hp", 1.0) >= success_conditions.get("min_avg_hp", 0.0)
+    if success_conditions.get("duration", false):
+        success = success and tactic_timer >= _get_tactic_cooldown(tactic)
+    return success
+
+func _tactic_should_abort(tactic: String, sense: Dictionary) -> bool:
+    var abort_conditions: Dictionary = _get_tactic_data(tactic).get("abort_conditions", {})
+    if abort_conditions.get("losing", false) and sense.get("losing", false):
+        return true
+    if abort_conditions.get("not_losing", false) and not sense.get("losing", false):
+        return true
+    return false
 
 func _act_base_of_fire() -> void:
     for unit in units:
@@ -470,3 +564,19 @@ func _record_timeline_event(label: String) -> void:
     var game: Node = get_tree().get_first_node_in_group("game")
     if game != null and game.has_method("_record_timeline_event"):
         game._record_timeline_event(label, {"fireteam_id": fireteam_id})
+
+func receive_help_request(team_id: int, unit_id: int, reason: String, metrics: Dictionary) -> void:
+    if team_id != fireteam_id:
+        return
+    Logger.log_telemetry("ai_help_received", {
+        "fireteam_id": fireteam_id,
+        "unit_id": unit_id,
+        "reason": reason,
+        "metrics": metrics
+    })
+    _log("Fireteam %d help request from Unit %d (%s)" % [fireteam_id, unit_id, reason])
+    _record_timeline_event("Help request: %s" % reason)
+    if reason == "panic" and commander_intent.get("goal", "hold") != "disengage":
+        commander_intent["goal"] = "disengage"
+    elif reason == "suppressed" and commander_intent.get("goal", "hold") == "hold":
+        commander_intent["goal"] = "fix"
