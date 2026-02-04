@@ -6,6 +6,7 @@ This guide explains how to export a playtest build and what testers should send 
 
 - Godot 4.x with export templates installed.
 - The export presets live in `export_presets.cfg` at the repo root.
+- Preset names are **Windows Desktop** and **Linux/X11** (matching `export_presets.cfg`).
 
 > Note: If you are running in a sandbox/CI environment without export templates, the export will fail. Install templates from the official Godot download page or via the editor before exporting.
 
@@ -36,6 +37,16 @@ The build is exported to:
 ```
 builds/playtest/SOCOM_Playtest.x86_64
 ```
+
+## Headless CLI export (CI/sandbox)
+
+If your environment has export templates installed, you can use:
+
+```bash
+./.tools/godot/godot --headless --path . --export-release "Linux/X11" builds/playtest/SOCOM_Playtest.x86_64
+```
+
+> Sandbox note: the current CI/sandbox environment does **not** include Godot export templates, so the headless export command fails until templates are installed locally.
 
 ## Controls quick list
 

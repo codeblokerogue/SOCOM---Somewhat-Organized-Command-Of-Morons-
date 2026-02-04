@@ -1,7 +1,7 @@
 # Top‑Down RTS Tactical Shooter (MVP Prototype)
 
-**Current version:** v0.1 (MVP prototype).  
-**Status:** v0.9 and v1 are **not** complete yet; the project focuses on the MVP vertical slice.
+**Current version:** v0.9 (playable playtest build).  
+**Status:** v1 is **not** complete yet; the project focuses on the MVP vertical slice.
 
 This repository follows **PRD v1.0** and delivers a playable top‑down tactics prototype in **Godot 4**. The focus is on real‑time orders (selection, movement, attack‑move, hold, spacing), cover and suppression, and early AI fireteam behaviors.
 
@@ -30,6 +30,18 @@ This repository follows **PRD v1.0** and delivers a playable top‑down tactics 
 ./.tools/godot/godot --headless --quit --path .
 ```
 
+### Automated playtest (headless)
+
+```bash
+./scripts/playtest_headless.sh
+```
+
+Playtest mode is enabled via user arguments after `--` (engine args are ignored):
+
+```bash
+./.tools/godot/godot --headless --path . -- --playtest
+```
+
 ### Local GUI (Windows/macOS/Linux)
 
 1. Launch the Godot 4 editor you downloaded.
@@ -54,13 +66,26 @@ This repository follows **PRD v1.0** and delivers a playable top‑down tactics 
 
 See [docs/PLAYTEST.md](docs/PLAYTEST.md) for manual checklists.
 
-Headless autoplay playtest:
-
-```bash
-./scripts/playtest_headless.sh
-```
-
 ## Export Instructions
+
+Export preset names (from `export_presets.cfg`):
+
+- **Windows Desktop** → `builds/playtest/SOCOM_Playtest.exe`
+- **Linux/X11** → `builds/playtest/SOCOM_Playtest.x86_64`
+
+See [docs/PLAYTEST_BUILD.md](docs/PLAYTEST_BUILD.md) for the full export steps and troubleshooting.
+
+## Playtest RC checklist
+
+- Headless boot succeeds.
+- Automated playtest (`./scripts/playtest_headless.sh`) succeeds.
+- Menu flow works (Menu → Game → AfterAction → Menu).
+- Drag-box + shift-add selection works.
+- Move / attack-move / hold / spacing orders work.
+- Cover, LoS, suppression visuals show.
+- Logs are produced in `user://` (match_log.txt, telemetry.jsonl).
+- Export presets match docs and output paths.
+- Build runs without script errors in the console.
 
 Open **Project → Export** in the Godot editor, add a preset for your platform (Windows, Linux, or macOS), then click **Export Project**. Godot will generate the executable in the selected directory.
 

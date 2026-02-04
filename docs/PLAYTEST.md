@@ -10,6 +10,20 @@ This document defines fast, repeatable playtests for the MVP vertical slice. Use
 4. End the run and confirm the AfterAction screen appears.
 5. Return to the main menu.
 
+## Headless autoplay (CLI)
+
+Playtest mode is triggered via user arguments after `--`:
+
+```bash
+./.tools/godot/godot --headless --path . -- --playtest
+```
+
+The helper script wraps this invocation:
+
+```bash
+./scripts/playtest_headless.sh
+```
+
 ## 10-minute feature test (manual)
 
 ### Selection + Orders
