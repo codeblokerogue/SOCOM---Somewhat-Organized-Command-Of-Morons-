@@ -24,12 +24,18 @@ if [[ ${playtest_status} -ne 0 ]]; then
   exit "${playtest_status}"
 fi
 
-if rg -q "Playtest failed:" "${LOG_FILE}"; then
+if command -v rg >/dev/null 2>&1; then
+  log_check_cmd=(rg -q)
+else
+  log_check_cmd=(grep -q)
+fi
+
+if "${log_check_cmd[@]}" "Playtest failed:" "${LOG_FILE}"; then
   echo "[playtest] ERROR: Failure detected in logs"
   exit 1
 fi
 
-if ! rg -q "Playtest completed; exiting with code 0" "${LOG_FILE}"; then
+if ! "${log_check_cmd[@]}" "Playtest completed; exiting with code 0" "${LOG_FILE}"; then
   echo "[playtest] ERROR: Success line missing from logs"
   exit 1
 fi
