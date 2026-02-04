@@ -61,12 +61,40 @@ func _draw() -> void:
     var font_size: int = get_theme_default_font_size()
     draw_string(font, Vector2(10, y_offset), "State: %s" % current_state, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 0.4))
     y_offset += line_height
+    var game: Node = get_tree().get_first_node_in_group("game")
+    if game != null:
+        var objective_marker: Node2D = game.get_node_or_null("ObjectiveMarker")
+        if objective_marker != null:
+            var radius: float = 120.0
+            if "radius" in objective_marker:
+                radius = objective_marker.radius
+            var marker_pos: Vector2 = objective_marker.global_position
+            var player_count: int = 0
+            var enemy_count: int = 0
+            if game.has_method("_count_units_in_radius"):
+                player_count = game._count_units_in_radius("player_units", marker_pos, radius)
+                enemy_count = game._count_units_in_radius("enemy_units", marker_pos, radius)
+            var hold_player_value = game.get("hold_timer_player")
+            var hold_enemy_value = game.get("hold_timer_enemy")
+            var hold_threshold_value = game.get("HOLD_THRESHOLD")
+            var hold_player: float = hold_player_value if hold_player_value != null else 0.0
+            var hold_enemy: float = hold_enemy_value if hold_enemy_value != null else 0.0
+            var hold_threshold: float = hold_threshold_value if hold_threshold_value != null else 12.0
+            var objective_line: String = "Objective: P%d E%d | Hold %.1f/%.0f %.1f/%.0f" % [
+                player_count,
+                enemy_count,
+                hold_player,
+                hold_threshold,
+                hold_enemy,
+                hold_threshold
+            ]
+            draw_string(font, Vector2(10, y_offset), objective_line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.6, 0.9, 0.6))
+            y_offset += line_height
     for line in event_log:
         draw_string(font, Vector2(10, y_offset), line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1))
         y_offset += line_height
     var viewport: Viewport = get_viewport()
     var canvas_xform: Transform2D = viewport.get_canvas_transform()
-    var game: Node = get_tree().get_first_node_in_group("game")
     if game != null:
         var selection_handler: Node = game.get_node_or_null("SelectionHandler")
         if selection_handler != null:

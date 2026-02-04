@@ -186,6 +186,8 @@ func take_damage(amount: float, source: Node) -> void:
             game.record_kill(cover_state, source)
             game.award_xp(source, 10)
             game.record_flank_event(source, self)
+            if is_in_group("player_units") and game.has_method("mark_unit_lost"):
+                game.mark_unit_lost(id, "KIA")
         Logger.log_telemetry("combat_kill", {
             "attacker_id": source.id,
             "target_id": id,

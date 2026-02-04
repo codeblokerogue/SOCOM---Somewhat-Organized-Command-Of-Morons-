@@ -323,7 +323,8 @@ func _register_unit(unit: Node) -> void:
         "id": unit.id,
         "xp": unit.xp,
         "rank": unit.rank,
-        "assigned": true
+        "assigned": true,
+        "status": "Active"
     }
 
 func _apply_persisted_data(unit: Node) -> void:
@@ -610,7 +611,8 @@ func _load_campaign_state() -> void:
                 "id": entry_id,
                 "xp": entry.get("xp", 0),
                 "rank": entry.get("rank", 0),
-                "assigned": entry.get("assigned", true)
+                "assigned": entry.get("assigned", true),
+                "status": entry.get("status", "Active")
             }
     _sync_id_generator()
 
@@ -631,11 +633,27 @@ func _sync_roster_from_units() -> void:
                 "id": unit.id,
                 "xp": unit.xp,
                 "rank": unit.rank,
-                "assigned": true
+                "assigned": true,
+                "status": "Active"
             }
         else:
             unit_roster[unit.id]["xp"] = unit.xp
             unit_roster[unit.id]["rank"] = unit.rank
+            if not unit_roster[unit.id].has("status"):
+                unit_roster[unit.id]["status"] = "Active"
+
+func mark_unit_lost(unit_id: int, status: String = "KIA") -> void:
+    if not unit_roster.has(unit_id):
+        unit_roster[unit_id] = {
+            "id": unit_id,
+            "xp": 0,
+            "rank": 0,
+            "assigned": false,
+            "status": status
+        }
+    else:
+        unit_roster[unit_id]["status"] = status
+        unit_roster[unit_id]["assigned"] = false
 
 func _update_suppression_stats() -> void:
     var peak_player: float = 0.0

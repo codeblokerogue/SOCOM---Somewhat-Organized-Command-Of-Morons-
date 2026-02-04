@@ -24,6 +24,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_base_of_fire",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.2,
+        "risk_bias": 0.2,
+        "time_cost": 0.35,
         "cooldown": 6.0
     },
     "flank_subgroup": {
@@ -32,6 +35,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_flank_subgroup",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.4,
+        "risk_bias": 0.55,
+        "time_cost": 0.7,
         "cooldown": 7.0
     },
     "screen": {
@@ -40,6 +46,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_screen",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.3,
+        "risk_bias": 0.45,
+        "time_cost": 0.6,
         "cooldown": 7.0
     },
     "peel_back": {
@@ -48,6 +57,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_peel_back",
         "success_conditions": {"stabilized": true, "duration": true},
         "abort_conditions": {"not_losing": true},
+        "gain_bias": 0.5,
+        "risk_bias": 0.1,
+        "time_cost": 0.25,
         "cooldown": 4.0
     },
     "reserve": {
@@ -56,6 +68,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_reserve",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.25,
+        "risk_bias": 0.2,
+        "time_cost": 0.45,
         "cooldown": 8.0
     },
     "probe_and_pull": {
@@ -64,6 +79,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_probe_and_pull",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.35,
+        "risk_bias": 0.5,
+        "time_cost": 0.55,
         "cooldown": 6.0
     },
     "recon_by_fire": {
@@ -72,6 +90,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_recon_by_fire",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.25,
+        "risk_bias": 0.3,
+        "time_cost": 0.4,
         "cooldown": 6.0
     },
     "fix_and_shift": {
@@ -80,6 +101,9 @@ const TACTIC_CATALOGUE := {
         "act_plan": "_act_fix_and_shift",
         "success_conditions": {"not_losing": true, "min_avg_hp": 0.5, "min_avg_hp_after_duration": true},
         "abort_conditions": {"losing": true},
+        "gain_bias": 0.45,
+        "risk_bias": 0.5,
+        "time_cost": 0.65,
         "cooldown": 7.0
     }
 }
@@ -146,6 +170,10 @@ func _sense() -> Dictionary:
     var avg_fear: float = _get_average_fear(units)
     var avg_hp: float = _get_average_hp_ratio(units)
     var avg_suppression: float = _get_average_suppression(units)
+    var max_suppression: float = _get_max_suppression(units)
+    var heavy_suppression: bool = avg_suppression > 65.0 or max_suppression > 80.0
+    var heavy_losses: bool = avg_hp < 0.35 or units.size() <= 2
+    var enemy_flank: bool = _detect_enemy_flank(centroid, player_units)
     var losing: bool = avg_hp < 0.45 or avg_fear > 0.6 or avg_suppression > 55.0
     Logger.log_telemetry("ai_sense", {
         "fireteam_id": fireteam_id,
@@ -154,8 +182,18 @@ func _sense() -> Dictionary:
         "avg_fear": avg_fear,
         "avg_hp": avg_hp,
         "avg_suppression": avg_suppression,
+        "max_suppression": max_suppression,
+        "heavy_suppression": heavy_suppression,
+        "heavy_losses": heavy_losses,
+        "enemy_flank": enemy_flank,
         "losing": losing
     })
+    if enemy_flank:
+        Logger.log_telemetry("ai_enemy_flank_detected", {
+            "fireteam_id": fireteam_id,
+            "enemy_count": player_units.size(),
+            "centroid": centroid
+        })
     return {
         "units": units,
         "centroid": centroid,
@@ -164,49 +202,38 @@ func _sense() -> Dictionary:
         "avg_fear": avg_fear,
         "avg_hp": avg_hp,
         "avg_suppression": avg_suppression,
+        "max_suppression": max_suppression,
+        "heavy_suppression": heavy_suppression,
+        "heavy_losses": heavy_losses,
+        "enemy_flank": enemy_flank,
         "losing": losing
     }
 
 func _decide(sense: Dictionary) -> String:
     if sense["nearest_enemy"] == null:
         return "idle"
-    var unit_count: int = units.size()
     var scores: Dictionary = {
-        "base_of_fire": 0.6,
-        "flank_subgroup": 0.2,
-        "screen": 0.15,
-        "peel_back": 0.1,
-        "reserve": 0.1,
-        "probe_and_pull": 0.15,
-        "recon_by_fire": 0.1,
-        "fix_and_shift": 0.12
+        "base_of_fire": 0.0,
+        "flank_subgroup": 0.0,
+        "screen": 0.0,
+        "peel_back": 0.0,
+        "reserve": 0.0,
+        "probe_and_pull": 0.0,
+        "recon_by_fire": 0.0,
+        "fix_and_shift": 0.0
     }
-    match commander_intent.get("goal", "hold"):
-        "probe":
-            scores["flank_subgroup"] += 0.35
-            scores["screen"] += 0.1
-        "fix":
-            scores["base_of_fire"] += 0.3
-        "disengage":
-            scores["peel_back"] += 0.5
-        _:
-            scores["reserve"] += 0.1
-    if sense["losing"]:
-        scores["peel_back"] = 1.2
-        scores["probe_and_pull"] -= 0.1
-        scores["fix_and_shift"] -= 0.1
-    if unit_count >= 3:
-        scores["flank_subgroup"] += 0.25
-        scores["probe_and_pull"] += 0.15
-    if unit_count >= 4:
-        scores["screen"] += 0.2
-        scores["reserve"] += 0.25
-        scores["fix_and_shift"] += 0.25
+    var scoring_breakdown: Dictionary = {}
     for key in scores.keys():
         if not _tactic_is_available(key, sense):
             scores[key] = -1.0
+            continue
         if cooldowns.has(key) and cooldowns[key] > 0.0:
             scores[key] = -1.0
+            continue
+        var score_data: Dictionary = _score_tactic(key, sense)
+        var final_score: float = score_data.get("final", 0.0)
+        scores[key] = final_score
+        scoring_breakdown[key] = score_data
     var best: String = "base_of_fire"
     var best_score: float = -1.0
     for key in scores.keys():
@@ -218,12 +245,73 @@ func _decide(sense: Dictionary) -> String:
         "fireteam_id": fireteam_id,
         "intent": commander_intent.get("goal", "hold"),
         "scores": scores,
+        "score_breakdown": scoring_breakdown,
         "choice": best
     })
     return best
 
+func _score_tactic(tactic: String, sense: Dictionary) -> Dictionary:
+    var data: Dictionary = _get_tactic_data(tactic)
+    var intent: String = commander_intent.get("goal", "hold")
+    var triggers: Dictionary = data.get("triggers", {})
+    var requirements: Dictionary = data.get("requirements", {})
+    var min_units: int = requirements.get("min_units", 1)
+    var unit_count: int = units.size()
+    var gain: float = data.get("gain_bias", 0.2)
+    var risk: float = data.get("risk_bias", 0.2)
+    var time_cost: float = data.get("time_cost", 0.5)
+    if triggers.has("intent"):
+        var intent_trigger = triggers.get("intent")
+        if intent_trigger is Array and intent_trigger.has(intent):
+            gain += 0.25
+        elif intent_trigger is String and intent_trigger == intent:
+            gain += 0.25
+    if intent == "disengage" and tactic == "peel_back":
+        gain += 0.45
+    if sense.get("losing", false) and tactic == "peel_back":
+        gain += 0.3
+    if sense.get("enemy_flank", false) and (tactic == "screen" or tactic == "base_of_fire"):
+        gain += 0.2
+    risk += clamp(sense.get("avg_suppression", 0.0) / 100.0, 0.0, 1.0) * 0.4
+    risk += clamp(1.0 - sense.get("avg_hp", 1.0), 0.0, 1.0) * 0.3
+    if sense.get("heavy_suppression", false):
+        risk += 0.25
+    if sense.get("heavy_losses", false):
+        risk += 0.25
+    if sense.get("enemy_flank", false):
+        risk += 0.2
+    if tactic == "peel_back":
+        risk -= 0.2
+    if tactic == "reserve":
+        risk -= 0.1
+    var feasibility: float = clamp(float(unit_count) / float(max(min_units, 1)), 0.0, 1.0)
+    if unit_count < min_units:
+        feasibility *= 0.2
+    var urgency: float = 0.0
+    if sense.get("losing", false) or sense.get("heavy_suppression", false) or sense.get("heavy_losses", false):
+        urgency = 0.2
+    var time_score: float = clamp(1.0 - time_cost - (time_cost * urgency), 0.0, 1.0)
+    var final_score: float = gain + feasibility + time_score - risk
+    return {
+        "gain": gain,
+        "risk": risk,
+        "feasibility": feasibility,
+        "time": time_score,
+        "final": final_score
+    }
+
 func _should_switch(next_tactic: String, sense: Dictionary) -> bool:
     if current_tactic == "idle":
+        return true
+    if sense.get("heavy_suppression", false) or sense.get("heavy_losses", false) or sense.get("enemy_flank", false):
+        Logger.log_telemetry("ai_tactic_abort", {
+            "fireteam_id": fireteam_id,
+            "tactic": current_tactic,
+            "reason": "pressure",
+            "heavy_suppression": sense.get("heavy_suppression", false),
+            "heavy_losses": sense.get("heavy_losses", false),
+            "enemy_flank": sense.get("enemy_flank", false)
+        })
         return true
     if _tactic_should_abort(current_tactic, sense):
         return true
@@ -532,6 +620,29 @@ func _get_average_suppression(list: Array) -> float:
     for unit in list:
         total += unit.suppression
     return total / float(list.size())
+
+func _get_max_suppression(list: Array) -> float:
+    var max_value: float = 0.0
+    for unit in list:
+        max_value = max(max_value, unit.suppression)
+    return max_value
+
+func _detect_enemy_flank(centroid: Vector2, enemies: Array) -> bool:
+    if enemies.size() < 2:
+        return false
+    var nearest: Node = _get_nearest_enemy(centroid, enemies)
+    if nearest == null:
+        return false
+    var forward: Vector2 = (nearest.global_position - centroid).normalized()
+    var flank_hits: int = 0
+    for enemy in enemies:
+        var to_enemy: Vector2 = enemy.global_position - centroid
+        if to_enemy.length() > 280.0:
+            continue
+        var angle: float = abs(forward.angle_to(to_enemy.normalized()))
+        if angle > 1.1:
+            flank_hits += 1
+    return flank_hits >= 1
 
 func _advance_cooldowns(delta: float) -> void:
     for key in cooldowns.keys():
