@@ -2,6 +2,11 @@
 
 This document defines fast, repeatable playtests for the MVP vertical slice. Use it for manual QA in the editor and for headless automation in CI.
 
+## Performance notes
+
+- Expected FPS range: 50–120 FPS on a mid-range desktop GPU (1920x1080, debug overlays off).
+- Known heavy toggles: F2-F6 overlays (cover/LoS/suppression/tactics), large unit counts (80-200), and loose formation spacing.
+
 ## 2-minute smoke test (manual)
 
 1. Launch the project and reach the main menu.
