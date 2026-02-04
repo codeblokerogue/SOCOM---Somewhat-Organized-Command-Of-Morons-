@@ -110,9 +110,9 @@ Re-audit limited to **tasks.md up to and including v0.9** and all **RESOLVED iss
 - None.
 
 ## Commands executed + results
-1. `./scripts/install_godot.sh` — **OK** (installed Godot 4.2.2).
-2. `./.tools/godot/godot --headless --quit --path .` — **OK** (headless boot succeeded).
-3. `./scripts/playtest_headless.sh` — **OK** (playtest automation completed).
+1. `./scripts/install_godot.sh` — **OK** (downloaded and installed Godot 4.2.2).
+2. `./.tools/godot/godot --headless --quit --path .` — **OK** (`Godot Engine v4.2.2.stable.official.15073afe3`).
+3. `./scripts/playtest_headless.sh` — **OK** (`Playtest completed; exiting with code 0`).
 
 ## Next unchecked task after v0.9
 - **v1 → Campaign flow** (first unchecked item after v0.9).

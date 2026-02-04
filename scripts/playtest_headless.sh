@@ -24,11 +24,7 @@ if [[ ${playtest_status} -ne 0 ]]; then
   exit "${playtest_status}"
 fi
 
-if command -v rg >/dev/null 2>&1; then
-  log_check_cmd=(rg -q)
-else
-  log_check_cmd=(grep -q)
-fi
+log_check_cmd=(grep -q)
 
 if "${log_check_cmd[@]}" "Playtest failed:" "${LOG_FILE}"; then
   echo "[playtest] ERROR: Failure detected in logs"
