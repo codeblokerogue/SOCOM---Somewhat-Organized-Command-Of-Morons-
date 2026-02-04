@@ -80,14 +80,10 @@ This file lays out the development plan derived from **PRD v1.0**. Each mileston
 
 ## v0.9
 
-* [ ] **Roster UI:** add a roster screen where the player can view persistent units, XP and ranks, assign them to missions, and replace casualties. XP/ranks should have visible effects (e.g. increased accuracy, suppression resistance).
-  * (partial: roster screen exists but is read-only; no mission assignment or XP effects.)
-* [ ] **Extra map & objective:** add at least one additional map with a distinct layout and a simple *hold the zone* objective. Implement basic modifiers (e.g. fog, night) to test LoS and suppression.
-  * (partial: extra map and objective marker exist; fog/night modifiers are missing.)
-* [ ] **Control groups:** implement control group shortcuts (Ctrl + 1–9) to assign selected units to numbered groups and double-click to select all units of the same archetype.
-  * (partial: double-click select by role works; control groups missing.)
-* [ ] **Expanded tactics:** add more tactic cards (Probe and Pull, Recon by Fire, Fix-and-Shift) and integrate them into the AI decision logic. Add more detailed telemetry to measure the success of each tactic.
-  * (partial: expanded tactics and telemetry are missing.)
+* [x] **Roster UI:** add a roster screen where the player can view persistent units, XP and ranks, assign them to missions, and replace casualties. XP/ranks should have visible effects (e.g. increased accuracy, suppression resistance).
+* [x] **Extra map & objective:** add at least one additional map with a distinct layout and a simple *hold the zone* objective. Implement basic modifiers (e.g. fog, night) to test LoS and suppression.
+* [x] **Control groups:** implement control group shortcuts (Ctrl + 1–9) to assign selected units to numbered groups and double-click to select all units of the same archetype.
+* [x] **Expanded tactics:** add more tactic cards (Probe and Pull, Recon by Fire, Fix-and-Shift) and integrate them into the AI decision logic. Add more detailed telemetry to measure the success of each tactic.
 
 ## v1
 

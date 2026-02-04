@@ -157,11 +157,21 @@ func _end_run() -> void:
 
 func spawn_player_units(count: int) -> void:
     var scene: PackedScene = load("res://scenes/Unit.tscn")
+    var assigned_units: Array = _get_assigned_units()
+    if not assigned_units.is_empty():
+        count = clamp(assigned_units.size(), 4, 80)
     for i in range(count):
         var unit = scene.instantiate()
-        unit.id = IDGenerator.next_id()
-        _apply_unit_archetype(unit, "Rifle")
-        _apply_persisted_data(unit)
+        if i < assigned_units.size():
+            var entry: Dictionary = assigned_units[i]
+            unit.id = int(entry.get("id", IDGenerator.next_id()))
+            _apply_unit_archetype(unit, "Rifle")
+            _apply_persisted_data(unit)
+        else:
+            unit.id = IDGenerator.next_id()
+            _apply_unit_archetype(unit, "Rifle")
+            _apply_persisted_data(unit)
+        _apply_rank_effects(unit)
         unit.position = Vector2(150 + i * 20, 400)
         unit.add_to_group("player_units")
         add_child(unit)
@@ -178,6 +188,7 @@ func spawn_enemy_units(count: int) -> void:
         var archetype: String = "Support" if i % 2 == 0 else "Scout"
         _apply_unit_archetype(unit, archetype)
         _apply_persisted_data(unit)
+        _apply_rank_effects(unit)
         unit.position = Vector2(800 + i * 20, 200)
         unit.add_to_group("enemy_units")
         unit.fireteam_id = fireteam_index
@@ -311,7 +322,8 @@ func _register_unit(unit: Node) -> void:
     unit_roster[unit.id] = {
         "id": unit.id,
         "xp": unit.xp,
-        "rank": unit.rank
+        "rank": unit.rank,
+        "assigned": true
     }
 
 func _apply_persisted_data(unit: Node) -> void:
@@ -319,6 +331,11 @@ func _apply_persisted_data(unit: Node) -> void:
         var data: Dictionary = unit_roster[unit.id]
         unit.xp = data.get("xp", 0)
         unit.rank = data.get("rank", 0)
+
+func _apply_rank_effects(unit: Node) -> void:
+    var rank_bonus: float = float(unit.rank)
+    unit.accuracy += rank_bonus * 0.02
+    unit.suppression_resistance += rank_bonus * 0.05
 
 func _update_selection_panel() -> void:
     if selection_label == null:
@@ -360,7 +377,42 @@ func _toggle_hold_mode() -> void:
     _record_timeline_event("Hold mode: %s" % mode_label, {"unit_count": selection_handler.selection.size()})
 
 func _handle_control_group_input(_event: InputEvent) -> void:
-    return
+    var event: InputEventKey = _event
+    var key_to_group := {
+        KEY_1: 1,
+        KEY_2: 2,
+        KEY_3: 3,
+        KEY_4: 4,
+        KEY_5: 5,
+        KEY_6: 6,
+        KEY_7: 7,
+        KEY_8: 8,
+        KEY_9: 9
+    }
+    if not key_to_group.has(event.keycode):
+        return
+    var group_id: int = key_to_group[event.keycode]
+    if event.ctrl_pressed:
+        control_groups[group_id] = selection_handler.selection.duplicate()
+        Logger.log_event("Control group %d assigned (%d units)" % [group_id, selection_handler.selection.size()])
+        _record_timeline_event("Control group assigned", {"group": group_id, "unit_count": selection_handler.selection.size()})
+        return
+    var units: Array = _get_control_group_units(group_id)
+    if units.is_empty():
+        return
+    selection_handler.select_units(units, false)
+    Logger.log_event("Control group %d selected (%d units)" % [group_id, units.size()])
+    _record_timeline_event("Control group selected", {"group": group_id, "unit_count": units.size()})
+
+func _get_control_group_units(group_id: int) -> Array:
+    if not control_groups.has(group_id):
+        return []
+    var valid: Array = []
+    for unit in control_groups[group_id]:
+        if is_instance_valid(unit):
+            valid.append(unit)
+    control_groups[group_id] = valid
+    return valid
 
 func is_line_of_sight(from_pos: Vector2, to_pos: Vector2, target: Node2D = null) -> bool:
     var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
@@ -553,11 +605,14 @@ func _load_campaign_state() -> void:
         return
     for entry in units:
         if typeof(entry) == TYPE_DICTIONARY and entry.has("id"):
+            var entry_id: int = int(entry.get("id", 0))
             unit_roster[entry["id"]] = {
-                "id": entry.get("id", 0),
+                "id": entry_id,
                 "xp": entry.get("xp", 0),
-                "rank": entry.get("rank", 0)
+                "rank": entry.get("rank", 0),
+                "assigned": entry.get("assigned", true)
             }
+    _sync_id_generator()
 
 func _save_campaign_state() -> void:
     _sync_roster_from_units()
@@ -575,7 +630,8 @@ func _sync_roster_from_units() -> void:
             unit_roster[unit.id] = {
                 "id": unit.id,
                 "xp": unit.xp,
-                "rank": unit.rank
+                "rank": unit.rank,
+                "assigned": true
             }
         else:
             unit_roster[unit.id]["xp"] = unit.xp
