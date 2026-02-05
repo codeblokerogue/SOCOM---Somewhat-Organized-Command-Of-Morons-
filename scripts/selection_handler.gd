@@ -52,10 +52,7 @@ func _draw() -> void:
         draw_rect(rect, border_col, false, 1.0)
 
 func _screen_to_world(screen_pos: Vector2) -> Vector2:
-    var camera: Camera2D = get_viewport().get_camera_2d()
-    if camera:
-        return camera.unproject_position(screen_pos)
-    return screen_pos
+    return get_viewport().get_canvas_transform().affine_inverse() * screen_pos
 
 func _handle_click_selection(world_pos: Vector2, add_to_selection: bool, is_double_click: bool) -> void:
     var selected_unit: Node2D = _get_unit_at_point(world_pos)

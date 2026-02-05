@@ -75,6 +75,14 @@ Optional CLI logging helpers (passed after `--`):
 
 See [docs/PLAYTEST.md](docs/PLAYTEST.md) for manual checklists.
 
+Playtest controls:
+
+- **LMB drag/click** — select units (drag-box + shift-add supported).
+- **RMB** — issue move/attack-move orders (hold **A** for attack-move).
+- **Space** — pause/unpause.
+- **F1–F6** — toggle debug overlays.
+- Camera now starts centered on the player spawn so units/objective are visible immediately.
+
 ## Export Instructions
 
 Export preset names (from `export_presets.cfg`):

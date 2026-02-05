@@ -1,0 +1,22 @@
+[gd_scene format=2]
+
+[node name="MapBlockout" type="Node2D"]
+
+[node name="Background" type="Polygon2D" parent="."]
+color = Color(0.08, 0.09, 0.1, 1)
+polygon = PackedVector2Array(0, 0, 1600, 0, 1600, 900, 0, 900)
+
+[node name="Border" type="Line2D" parent="."]
+width = 2.0
+default_color = Color(0.35, 0.4, 0.45, 1)
+points = PackedVector2Array(0, 0, 1600, 0, 1600, 900, 0, 900, 0, 0)
+
+[node name="LaneLineA" type="Line2D" parent="."]
+width = 1.0
+default_color = Color(0.2, 0.25, 0.3, 0.5)
+points = PackedVector2Array(0, 300, 1600, 300)
+
+[node name="LaneLineB" type="Line2D" parent="."]
+width = 1.0
+default_color = Color(0.2, 0.25, 0.3, 0.5)
+points = PackedVector2Array(0, 600, 1600, 600)

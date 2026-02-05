@@ -19,6 +19,7 @@ const MAX_LAST_KNOWN_MARKERS: int = 12
 func _ready() -> void:
     # Add to a group so other scripts can send log events
     add_to_group("debug_overlay")
+    mouse_filter = Control.MOUSE_FILTER_IGNORE
     set_process(false)
     queue_redraw()
 

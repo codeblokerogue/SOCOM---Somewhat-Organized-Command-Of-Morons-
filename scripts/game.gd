@@ -53,6 +53,19 @@ func _ready() -> void:
     unit_archetypes = _load_unit_archetypes()
     _load_campaign_state()
     _spawn_match_units()
+    var player_units: Array = get_tree().get_nodes_in_group("player_units")
+    var camera_target: Vector2 = MAP_BOUNDS.position + MAP_BOUNDS.size * 0.5
+    if not player_units.is_empty():
+        var sum: Vector2 = Vector2.ZERO
+        var count: int = 0
+        for unit in player_units:
+            if unit is Node2D:
+                sum += unit.global_position
+                count += 1
+        if count > 0:
+            camera_target = sum / float(count)
+    camera.position = camera_target
+    _clamp_camera_to_bounds()
     _apply_map_modifiers()
     _setup_fireteam_ai()
     _init_match_stats()
